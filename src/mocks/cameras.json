@@ -1,0 +1,181 @@
+{
+    "cameras": [
+        {
+            "id": "tibo-001",
+            "name": "Living Room Cam",
+            "model": "TIBO-PRO",
+            "status": "online",
+            "firmware": "v2.1.4",
+            "ipAddress": "192.168.1.100",
+            "macAddress": "00:1B:44:11:3A:B7",
+            "location": {
+                "room": "Living Room",
+                "floor": "1st Floor",
+                "coordinates": {
+                    "x": 0.3,
+                    "y": 0.7
+                }
+            },
+            "capabilities": {
+                "ptz": true,
+                "nightVision": true,
+                "motionDetection": true,
+                "audioRecording": true,
+                "twoWayAudio": true,
+                "aiDetection": true
+            },
+            "settings": {
+                "resolution": "1080p",
+                "frameRate": 30,
+                "quality": "high",
+                "nightMode": "auto",
+                "motionSensitivity": 3,
+                "audioEnabled": true,
+                "recordingEnabled": true,
+                "aiDetection": {
+                    "person": true,
+                    "pet": true,
+                    "vehicle": false,
+                    "sound": true
+                },
+                "ptzLimits": {
+                    "panMin": -180,
+                    "panMax": 180,
+                    "tiltMin": -45,
+                    "tiltMax": 45,
+                    "zoomMin": 1,
+                    "zoomMax": 10
+                }
+            },
+            "stats": {
+                "batteryLevel": 85,
+                "wifiSignal": -45,
+                "storageUsed": 2147483648,
+                "storageTotal": 10737418240,
+                "uptime": 86400,
+                "temperature": 32,
+                "recordingTime": 7200,
+                "eventsToday": 12
+            },
+            "lastSeen": "2024-01-15T10:30:00Z"
+        },
+        {
+            "id": "tibo-002",
+            "name": "Front Door Cam",
+            "model": "TIBO-MINI",
+            "status": "online",
+            "firmware": "v2.1.4",
+            "ipAddress": "192.168.1.101",
+            "macAddress": "00:1B:44:11:3A:B8",
+            "location": {
+                "room": "Front Door",
+                "floor": "1st Floor",
+                "coordinates": {
+                    "x": 0.1,
+                    "y": 0.5
+                }
+            },
+            "capabilities": {
+                "ptz": false,
+                "nightVision": true,
+                "motionDetection": true,
+                "audioRecording": true,
+                "twoWayAudio": true,
+                "aiDetection": true
+            },
+            "settings": {
+                "resolution": "720p",
+                "frameRate": 15,
+                "quality": "medium",
+                "nightMode": "auto",
+                "motionSensitivity": 4,
+                "audioEnabled": true,
+                "recordingEnabled": true,
+                "aiDetection": {
+                    "person": true,
+                    "pet": false,
+                    "vehicle": true,
+                    "sound": true
+                },
+                "ptzLimits": {
+                    "panMin": 0,
+                    "panMax": 0,
+                    "tiltMin": 0,
+                    "tiltMax": 0,
+                    "zoomMin": 1,
+                    "zoomMax": 1
+                }
+            },
+            "stats": {
+                "batteryLevel": 92,
+                "wifiSignal": -52,
+                "storageUsed": 1073741824,
+                "storageTotal": 5368709120,
+                "uptime": 172800,
+                "temperature": 28,
+                "recordingTime": 3600,
+                "eventsToday": 8
+            },
+            "lastSeen": "2024-01-15T10:30:00Z"
+        },
+        {
+            "id": "tibo-003",
+            "name": "Backyard Cam",
+            "model": "TIBO-PAN",
+            "status": "online",
+            "firmware": "v2.1.4",
+            "ipAddress": "192.168.1.102",
+            "macAddress": "00:1B:44:11:3A:B9",
+            "location": {
+                "room": "Backyard",
+                "floor": "Garden",
+                "coordinates": {
+                    "x": 0.8,
+                    "y": 0.3
+                }
+            },
+            "capabilities": {
+                "ptz": true,
+                "nightVision": true,
+                "motionDetection": true,
+                "audioRecording": true,
+                "twoWayAudio": false,
+                "aiDetection": true
+            },
+            "settings": {
+                "resolution": "4K",
+                "frameRate": 30,
+                "quality": "high",
+                "nightMode": "on",
+                "motionSensitivity": 2,
+                "audioEnabled": false,
+                "recordingEnabled": true,
+                "aiDetection": {
+                    "person": true,
+                    "pet": true,
+                    "vehicle": true,
+                    "sound": false
+                },
+                "ptzLimits": {
+                    "panMin": -180,
+                    "panMax": 180,
+                    "tiltMin": -90,
+                    "tiltMax": 90,
+                    "zoomMin": 1,
+                    "zoomMax": 20
+                }
+            },
+            "stats": {
+                "batteryLevel": 78,
+                "wifiSignal": -65,
+                "storageUsed": 5368709120,
+                "storageTotal": 21474836480,
+                "uptime": 43200,
+                "temperature": 35,
+                "recordingTime": 10800,
+                "eventsToday": 15
+            },
+            "lastSeen": "2024-01-15T10:30:00Z"
+        }
+    ]
+}

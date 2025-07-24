@@ -1,0 +1,28 @@
+{
+    "id": "robot-cam-1",
+    "name": "움직이는 로봇 홈캠",
+    "online": true,
+    "favorite": true,
+    "thumb": "https://placehold.co/320x180?text=Robot+Cam",
+    "unread": 3,
+    "ptz": {
+        "pan": 0,
+        "tilt": 0,
+        "zoom": 1
+    },
+    "events": [
+        {
+            "id": "e1",
+            "type": "motion",
+            "time": "2024-07-22T15:00:00Z",
+            "thumb": "https://placehold.co/80x60?text=Event1"
+        }
+    ],
+    "recordings": [
+        {
+            "id": "r1",
+            "thumb": "https://placehold.co/120x80?text=Rec1",
+            "startedAt": "2024-07-22 14:00"
+        }
+    ]
+}

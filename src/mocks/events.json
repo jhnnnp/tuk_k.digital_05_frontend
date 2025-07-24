@@ -1,0 +1,187 @@
+{
+    "events": [
+        {
+            "id": "evt-001",
+            "cameraId": "tibo-001",
+            "type": "person",
+            "confidence": 0.94,
+            "timestamp": "2024-01-15T10:25:30Z",
+            "duration": 4500,
+            "location": {
+                "x": 0.45,
+                "y": 0.32,
+                "width": 0.28,
+                "height": 0.65
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "left",
+                "speed": 2.3
+            },
+            "thumbnail": "https://placehold.co/300x200/1CC38C/FFFFFF?text=Person+Detected",
+            "recordingId": "rec-001",
+            "isAcknowledged": false,
+            "isFalsePositive": false
+        },
+        {
+            "id": "evt-002",
+            "cameraId": "tibo-002",
+            "type": "motion",
+            "confidence": 0.87,
+            "timestamp": "2024-01-15T10:20:15Z",
+            "duration": 3200,
+            "location": {
+                "x": 0.12,
+                "y": 0.18,
+                "width": 0.15,
+                "height": 0.22
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "up",
+                "speed": 1.8
+            },
+            "thumbnail": "https://placehold.co/300x200/007AFF/FFFFFF?text=Motion+Detected",
+            "recordingId": "rec-002",
+            "isAcknowledged": true,
+            "isFalsePositive": false
+        },
+        {
+            "id": "evt-003",
+            "cameraId": "tibo-003",
+            "type": "pet",
+            "confidence": 0.91,
+            "timestamp": "2024-01-15T10:15:45Z",
+            "duration": 2800,
+            "location": {
+                "x": 0.67,
+                "y": 0.45,
+                "width": 0.23,
+                "height": 0.34
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "right",
+                "speed": 3.1
+            },
+            "thumbnail": "https://placehold.co/300x200/FF9500/FFFFFF?text=Pet+Detected",
+            "recordingId": "rec-003",
+            "isAcknowledged": false,
+            "isFalsePositive": false
+        },
+        {
+            "id": "evt-004",
+            "cameraId": "tibo-001",
+            "type": "sound",
+            "confidence": 0.76,
+            "timestamp": "2024-01-15T10:10:20Z",
+            "duration": 1500,
+            "location": {
+                "x": 0.0,
+                "y": 0.0,
+                "width": 1.0,
+                "height": 1.0
+            },
+            "metadata": {
+                "soundLevel": 85,
+                "objectCount": 0
+            },
+            "thumbnail": "https://placehold.co/300x200/5AC8FA/FFFFFF?text=Sound+Detected",
+            "recordingId": "rec-004",
+            "isAcknowledged": true,
+            "isFalsePositive": true
+        },
+        {
+            "id": "evt-005",
+            "cameraId": "tibo-002",
+            "type": "vehicle",
+            "confidence": 0.89,
+            "timestamp": "2024-01-15T10:05:10Z",
+            "duration": 5200,
+            "location": {
+                "x": 0.08,
+                "y": 0.12,
+                "width": 0.45,
+                "height": 0.38
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "left",
+                "speed": 4.2
+            },
+            "thumbnail": "https://placehold.co/300x200/34C759/FFFFFF?text=Vehicle+Detected",
+            "recordingId": "rec-005",
+            "isAcknowledged": false,
+            "isFalsePositive": false
+        },
+        {
+            "id": "evt-006",
+            "cameraId": "tibo-003",
+            "type": "person",
+            "confidence": 0.92,
+            "timestamp": "2024-01-15T10:00:30Z",
+            "duration": 3800,
+            "location": {
+                "x": 0.34,
+                "y": 0.28,
+                "width": 0.31,
+                "height": 0.58
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "down",
+                "speed": 2.7
+            },
+            "thumbnail": "https://placehold.co/300x200/1CC38C/FFFFFF?text=Person+Detected",
+            "recordingId": "rec-006",
+            "isAcknowledged": true,
+            "isFalsePositive": false
+        },
+        {
+            "id": "evt-007",
+            "cameraId": "tibo-001",
+            "type": "motion",
+            "confidence": 0.83,
+            "timestamp": "2024-01-15T09:55:45Z",
+            "duration": 2100,
+            "location": {
+                "x": 0.56,
+                "y": 0.41,
+                "width": 0.19,
+                "height": 0.27
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "up",
+                "speed": 1.5
+            },
+            "thumbnail": "https://placehold.co/300x200/007AFF/FFFFFF?text=Motion+Detected",
+            "recordingId": "rec-007",
+            "isAcknowledged": false,
+            "isFalsePositive": false
+        },
+        {
+            "id": "evt-008",
+            "cameraId": "tibo-002",
+            "type": "pet",
+            "confidence": 0.88,
+            "timestamp": "2024-01-15T09:50:20Z",
+            "duration": 3400,
+            "location": {
+                "x": 0.23,
+                "y": 0.35,
+                "width": 0.26,
+                "height": 0.42
+            },
+            "metadata": {
+                "objectCount": 1,
+                "movementDirection": "right",
+                "speed": 2.9
+            },
+            "thumbnail": "https://placehold.co/300x200/FF9500/FFFFFF?text=Pet+Detected",
+            "recordingId": "rec-008",
+            "isAcknowledged": false,
+            "isFalsePositive": false
+        }
+    ]
+}
