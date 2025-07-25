@@ -7,31 +7,32 @@ import LiveScreen from '../pages/LiveScreen';
 import RecordingsScreen from '../pages/RecordingsScreen';
 import SettingsScreen from '../pages/SettingsScreen';
 import Toast from 'react-native-toast-message';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import LoginScreen from '../pages/LoginScreen';
+import SignupScreen from '../pages/SignupScreen';
 
 export default function AppNavigator() {
     const { theme } = useTheme();
     const [activeTab, setActiveTab] = useState('home');
     const [moveMode, setMoveMode] = useState(false); // 이동모드 상태 리프팅
     const [showLiveView, setShowLiveView] = useState(false);
+    const [showSignup, setShowSignup] = useState(false); // 회원가입 화면 상태
 
     // 이동모드 해제 UX 모드: 'confirm' | 'auto'
     const moveModeExitUX: 'confirm' | 'auto' = 'confirm'; // 'auto'로 바꾸면 자동 OFF+Toast
 
     // 이동모드 해제 및 탭 이동 처리
     const handleNavigateAway = (targetTab: string) => {
-        console.log('[탭 이동 시도]', { activeTab, targetTab, moveMode });
         if (moveMode) {
             if (moveModeExitUX === 'confirm') {
-                console.log('[이동모드 UX] 다이얼로그 표시');
                 Alert.alert(
                     '이동모드 해제',
                     '이동모드를 취소할까요?',
                     [
-                        { text: '아니오', style: 'cancel', onPress: () => console.log('[다이얼로그] 아니오 선택') },
+                        { text: '아니오', style: 'cancel' },
                         {
                             text: '예',
                             onPress: () => {
-                                console.log('[다이얼로그] 예 선택, 이동모드 OFF 및 탭 이동');
                                 setMoveMode(false);
                                 setActiveTab(targetTab);
                             }
@@ -39,7 +40,6 @@ export default function AppNavigator() {
                     ]
                 );
             } else if (moveModeExitUX === 'auto') {
-                console.log('[이동모드 UX] 자동 OFF + Toast');
                 setMoveMode(false);
                 Toast.show({
                     type: 'info',
@@ -48,9 +48,13 @@ export default function AppNavigator() {
                 setActiveTab(targetTab);
             }
         } else {
-            console.log('[탭 이동] 이동모드 OFF 상태, 바로 이동');
             setActiveTab(targetTab);
         }
+    };
+
+    const handleLogout = async () => {
+        await AsyncStorage.removeItem('token');
+        setActiveTab('login');
     };
 
     const tabs = [
@@ -64,7 +68,15 @@ export default function AppNavigator() {
         if (showLiveView) {
             return <LiveScreen onBack={() => setShowLiveView(false)} moveMode={moveMode} setMoveMode={setMoveMode} />;
         }
-
+        if (showSignup) {
+            return <SignupScreen
+                onSignupSuccess={() => {
+                    setShowSignup(false);
+                    setActiveTab('home');
+                }}
+                onBackToLogin={() => setShowSignup(false)}
+            />;
+        }
         switch (activeTab) {
             case 'home':
                 return <HomeScreen />;
@@ -73,7 +85,12 @@ export default function AppNavigator() {
             case 'recordings':
                 return <RecordingsScreen />;
             case 'settings':
-                return <SettingsScreen />;
+                return <SettingsScreen onLogout={handleLogout} />;
+            case 'login':
+                return <LoginScreen
+                    onLoginSuccess={() => setActiveTab('home')}
+                    onSignup={() => setShowSignup(true)}
+                />;
             default:
                 return <HomeScreen />;
         }
@@ -83,6 +100,9 @@ export default function AppNavigator() {
         return renderScreen();
     }
 
+    // 로그인/회원가입/인트로에서는 하단탭 숨김
+    const hideTabs = activeTab === 'login' || showSignup;
+
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             {/* Main Content */}
@@ -90,65 +110,65 @@ export default function AppNavigator() {
                 {renderScreen()}
             </View>
 
-            {/* Bottom Navigation */}
-            <View style={{
-                backgroundColor: theme.surface,
-                borderTopWidth: 1,
-                borderTopColor: theme.outline,
-                paddingBottom: 20,
-                paddingTop: 8
-            }}>
+            {/* Bottom Navigation: 로그인/회원가입/인트로에서는 숨김 */}
+            {!hideTabs && (
                 <View style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-around',
-                    paddingHorizontal: 16
+                    backgroundColor: theme.surface,
+                    borderTopWidth: 1,
+                    borderTopColor: theme.outline,
+                    paddingBottom: 20,
+                    paddingTop: 8
                 }}>
-                    {tabs.map((tab) => {
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <TouchableOpacity
-                                key={tab.id}
-                                onPress={() => {
-                                    console.log('[탭 onPress]', { from: activeTab, to: tab.id, moveMode });
-                                    // 실시간 탭에서 다른 탭으로 이동 시 이동모드 UX 적용
-                                    if (activeTab === 'live' && tab.id !== 'live') {
-                                        handleNavigateAway(tab.id);
-                                    } else {
-                                        setActiveTab(tab.id);
-                                    }
-                                }}
-                                style={{
-                                    alignItems: 'center',
-                                    paddingVertical: 8,
-                                    paddingHorizontal: 12,
-                                    borderRadius: 12
-                                }}
-                            >
-                                <View style={{
-                                    alignItems: 'center',
-                                    gap: 4
-                                }}>
-                                    <Ionicons
-                                        name={tab.icon as any}
-                                        size={24}
-                                        color={isActive ? theme.primary : theme.textSecondary}
-                                        style={{
-                                            transform: [{ scale: isActive ? 1.1 : 1 }]
-                                        }}
-                                    />
-                                    <Text style={{
-                                        fontFamily: isActive ? 'GoogleSans-Medium' : 'GoogleSans-Regular',
-                                        fontSize: 10,
-                                        color: isActive ? theme.primary : theme.textSecondary
+                    <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-around',
+                        paddingHorizontal: 16
+                    }}>
+                        {tabs.map((tab) => {
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <TouchableOpacity
+                                    key={tab.id}
+                                    onPress={() => {
+                                        if (activeTab === 'live' && tab.id !== 'live') {
+                                            handleNavigateAway(tab.id);
+                                        } else {
+                                            setActiveTab(tab.id);
+                                        }
+                                    }}
+                                    style={{
+                                        alignItems: 'center',
+                                        paddingVertical: 8,
+                                        paddingHorizontal: 12,
+                                        borderRadius: 12
+                                    }}
+                                >
+                                    <View style={{
+                                        alignItems: 'center',
+                                        gap: 4
                                     }}>
-                                        {tab.label}
-                                    </Text>
-                                </View>
-                            </TouchableOpacity>
-                        );
-                    })}
+                                        <Ionicons
+                                            name={tab.icon as any}
+                                            size={24}
+                                            color={isActive ? theme.primary : theme.textSecondary}
+                                            style={{
+                                                transform: [{ scale: isActive ? 1.1 : 1 }]
+                                            }}
+                                        />
+                                        <Text style={{
+                                            fontFamily: isActive ? 'GoogleSans-Medium' : 'GoogleSans-Regular',
+                                            fontSize: 10,
+                                            color: isActive ? theme.primary : theme.textSecondary
+                                        }}>
+                                            {tab.label}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
                 </View>
-            </View>
+            )}
             <Toast />
         </View>
     );

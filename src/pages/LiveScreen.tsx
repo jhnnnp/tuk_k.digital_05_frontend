@@ -41,6 +41,7 @@ import { Card } from '../components/layout/Card';
 import { Joystick } from '../components/atoms/Joystick';
 import { liveStreamService, LiveStreamState } from '../services/LiveStreamService';
 import Toast from 'react-native-toast-message';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Performance optimized animated components
 // const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -107,8 +108,27 @@ const quickActions = [
     }
 ];
 
+// 심플한 Badge 컴포넌트 생성
+function StatusBadge({ color, text }: { color: string; text: string }) {
+    return (
+        <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            borderRadius: 16,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            marginBottom: 4,
+        }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, marginRight: 6, backgroundColor: color }} />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{text}</Text>
+        </View>
+    );
+}
+
 export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }: { navigation?: any; onBack?: () => void; moveMode: boolean; setMoveMode: (v: boolean) => void }) {
     const { theme } = useTheme();
+    const insets = useSafeAreaInsets();
 
     // Enhanced state management
     const [camera, setCamera] = useState(mockCamera);
@@ -263,12 +283,14 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
         action,
         isActive,
         onPress,
-        delay = 0
+        delay = 0,
+        disabled
     }: {
         action: typeof quickActions[0];
         isActive: boolean;
         onPress: () => void;
         delay?: number;
+        disabled: boolean;
     }) => {
         const buttonScale = useSharedValue(1);
         const buttonOpacity = useSharedValue(1);
@@ -297,7 +319,11 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                     style={[styles.actionCircle, animatedButtonStyle]}
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
-                    onPress={onPress}
+                    onPress={() => {
+                        console.log('[Pressable] onPress', action.id, 'disabled:', disabled);
+                        onPress();
+                    }}
+                    disabled={disabled}
                 >
                     <Ionicons
                         name={isActive ? (action.activeIcon as any) : (action.icon as any)}
@@ -349,6 +375,15 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
         }
     }, [moveMode, navigation, moveModeExitUX, setMoveMode]);
 
+    const handleRecordPress = () => {
+        console.log('[녹화버튼] handleRecordPress 호출됨, insets.top:', insets.top, 'streamState:', streamState, 'isRecording:', streamState?.isRecording);
+        if (insets.top === 0) {
+            console.log('[녹화버튼] insets.top이 0이므로 동작하지 않음');
+            return;
+        }
+        handleActionPress('record');
+    };
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
@@ -378,23 +413,20 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                                 </View>
                             </Animated.View>
                             {/* Enhanced Status Indicators */}
-                            <Animated.View
-                                style={styles.statusIndicator}
-                                entering={SlideInRight.delay(300).springify()}
-                            >
-                                {streamState && streamState.isRecording && (
-                                    <View style={styles.statusBadge}>
-                                        <View style={[styles.statusDot, { backgroundColor: '#F44336' }]} />
-                                        <Text style={styles.statusText}>REC</Text>
-                                    </View>
-                                )}
-                                {streamState && streamState.isMicOn && (
-                                    <View style={[styles.statusBadge, { marginTop: streamState.isRecording ? 8 : 0 }]}>
-                                        <View style={[styles.statusDot, { backgroundColor: '#4A90E2' }]} />
-                                        <Text style={styles.statusText}>MIC</Text>
-                                    </View>
-                                )}
-                            </Animated.View>
+                            {insets.top > 0 && streamState && (streamState.isRecording || streamState.isMicOn) && (
+                                <View
+                                    style={{
+                                        position: 'absolute',
+                                        top: 20, // LIVE 뱃지와 동일한 y축 위치
+                                        right: 20,
+                                        zIndex: 3,
+                                        alignItems: 'flex-end',
+                                    }}
+                                >
+                                    {streamState.isRecording && <StatusBadge color="#F44336" text="REC" />}
+                                    {streamState.isMicOn && <StatusBadge color="#4A90E2" text="MIC" />}
+                                </View>
+                            )}
                         </Animated.View>
                     </PinchGestureHandler>
                     {/* 나머지 UI (컨트롤 카드 등) */}
@@ -424,13 +456,19 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                                 else if (action.id === 'zoomIn') isActive = zoomScale.value > 1;
                                 else if (action.id === 'zoomOut') isActive = zoomScale.value > 1;
                                 else isActive = selectedAction === action.id;
+                                const isRecordButton = action.id === 'record';
                                 return (
                                     <ActionButton
                                         key={action.id}
                                         action={action}
                                         isActive={isActive}
-                                        onPress={() => handleActionPress(action.id)}
+                                        onPress={() => {
+                                            console.log('[ActionButton] onPress', action.id);
+                                            if (isRecordButton) handleRecordPress();
+                                            else handleActionPress(action.id);
+                                        }}
                                         delay={300 + (index * 50)}
+                                        disabled={isRecordButton && insets.top === 0}
                                     />
                                 );
                             })}

@@ -1,5 +1,5 @@
 // src/screens/SettingsScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     SafeAreaView,
     ScrollView,
@@ -12,9 +12,45 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { CommonActions, useNavigation } from '@react-navigation/native';
 
-export default function SettingsScreen() {
+export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
     const { theme } = useTheme();
+    // navigation, useNavigation 제거
+
+    // 사용자 프로필 상태
+    const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+    const [profileLoading, setProfileLoading] = useState(true);
+    const [profileError, setProfileError] = useState('');
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            setProfileLoading(true);
+            setProfileError('');
+            try {
+                const token = await AsyncStorage.getItem('token');
+                if (!token) {
+                    setProfileError('로그인이 필요합니다.');
+                    setProfileLoading(false);
+                    return;
+                }
+                const res = await fetch('http://localhost:3000/api/auth/account', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setProfile({ name: data.name, email: data.email });
+                } else {
+                    setProfileError('프로필 정보를 불러올 수 없습니다.');
+                }
+            } catch (err) {
+                setProfileError('서버 오류가 발생했습니다.');
+            }
+            setProfileLoading(false);
+        };
+        fetchProfile();
+    }, []);
 
     // 설정 상태
     const [settings, setSettings] = useState({
@@ -185,7 +221,7 @@ export default function SettingsScreen() {
                 {
                     text: '로그아웃',
                     style: 'destructive',
-                    onPress: () => Alert.alert('로그아웃됨', '안전하게 로그아웃되었습니다.')
+                    onPress: onLogout
                 }
             ]
         );
@@ -220,11 +256,21 @@ export default function SettingsScreen() {
                         backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center',
                         marginRight: 16,
                     }}>
-                        <Text style={{ color: theme.onPrimary, fontSize: 22, fontFamily: 'GoogleSans-Medium' }}>김철</Text>
+                        <Text style={{ color: theme.onPrimary, fontSize: 22, fontFamily: 'GoogleSans-Medium' }}>
+                            {profile?.name ? profile.name.slice(0, 2) : '??'}
+                        </Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 18, fontFamily: 'GoogleSans-Medium', color: theme.textPrimary }}>김철수</Text>
-                        <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>kim@example.com</Text>
+                        {profileLoading ? (
+                            <Text style={{ fontSize: 16, color: theme.textSecondary }}>불러오는 중...</Text>
+                        ) : profileError ? (
+                            <Text style={{ fontSize: 16, color: theme.error }}>{profileError}</Text>
+                        ) : (
+                            <>
+                                <Text style={{ fontSize: 18, fontFamily: 'GoogleSans-Medium', color: theme.textPrimary }}>{profile?.name}</Text>
+                                <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>{profile?.email}</Text>
+                            </>
+                        )}
                     </View>
                     <Ionicons name="chevron-forward" size={22} color={theme.textSecondary} />
                 </TouchableOpacity>

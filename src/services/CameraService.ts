@@ -6,8 +6,8 @@ class CameraService {
     private isMockMode: boolean;
 
     constructor() {
-        this.baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://api.tibo.com';
-        this.isMockMode = process.env.NODE_ENV === 'development' || !process.env.EXPO_PUBLIC_API_URL;
+        this.baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+        this.isMockMode = false; // 실제 백엔드와 연동하므로 mock 모드 비활성화
     }
 
     // Get all cameras
