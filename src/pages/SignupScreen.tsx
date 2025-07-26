@@ -11,6 +11,7 @@ import {
     ActivityIndicator,
     View,
     ScrollView,
+    Switch,
 } from 'react-native';
 import Animated, {
     useSharedValue,
@@ -24,6 +25,7 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import TermsModal from '../components/atoms/TermsModal';
 import termsData from '../mocks/terms.json';
+// FirebaseAuthService import 제거
 
 // Validation Schema
 const schema = yup.object({
@@ -85,6 +87,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const [mockVerificationCode, setMockVerificationCode] = useState<string>('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isMockMode, setIsMockMode] = useState(true); // 인증번호 모킹/실제 API 토글
 
     // 스크롤뷰 참조
     const scrollViewRef = React.useRef<ScrollView>(null);
@@ -151,42 +154,84 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const agreeMarketing = watch('agreeMarketing');
     const allAgree = agreeTerms && agreePrivacy && agreeMicrophone && agreeLocation;
 
-    const onSendCode = () => {
+    const BACKEND_BASE_URL = 'http://192.168.123.103:3000'; // 실제 PC의 로컬 IP로 적용
+
+    // firebaseConfirmation 상태 제거
+
+    const onSendCode = async () => {
         setCertSent(true);
         setTimer(180);
         setCertVerified(false);
 
-        // 개발환경에서 모킹 인증번호 생성
-        if (__DEV__) {
+        if (isMockMode) {
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
             setMockVerificationCode(mockCode);
             console.log('📱 모킹 인증번호 발송:', mockCode);
             console.log('💡 데모 환경: 인증번호를 입력하면 자동으로 다음 단계로 넘어갑니다!');
+        } else {
+            // 실제 API 호출 (Twilio)
+            try {
+                // E.164 형식으로 변환
+                const e164Phone = toE164Format(watch('phone'));
+                console.log('📱 E.164 형식 변환:', watch('phone'), '→', e164Phone);
+
+                if (!e164Phone) {
+                    alert('유효하지 않은 휴대폰 번호입니다.');
+                    return;
+                }
+
+                const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: e164Phone })
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.error || '인증번호 발송 실패');
+                }
+            } catch (err) {
+                alert('네트워크 오류: 인증번호 발송 실패');
+            }
         }
-        // 실제로는 여기서 API 호출
-        // const response = await fetch('/api/auth/send-code', {
-        //     method: 'POST',
-        //     body: JSON.stringify({ phone: watch('phone') })
-        // });
     };
 
-    const onVerifyCode = () => {
+    const onVerifyCode = async () => {
         const code = watch('code');
         if (code && code.length === 6) {
-            // 개발환경에서 모킹 인증번호 검증
-            if (__DEV__) {
+            if (isMockMode) {
+                // Mock 모드에서 인증번호 검증
                 if (code === mockVerificationCode) {
                     setCertVerified(true);
-                    console.log('✅ 인증번호 검증 성공!');
+                    console.log('✅ Mock 인증번호 검증 성공!');
                 } else {
                     console.log('❌ 인증번호가 일치하지 않습니다.');
                     console.log('📱 발송된 인증번호:', mockVerificationCode);
                     console.log('🔢 입력한 인증번호:', code);
                 }
             } else {
-                // 실제 환경에서는 API 호출
-                setCertVerified(true);
-                console.log('인증번호 검증:', code);
+                // Twilio/실제 API에서는 백엔드에서 검증
+                try {
+                    const e164Phone = toE164Format(watch('phone'));
+                    const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/verify`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phone: e164Phone,
+                            code: code
+                        })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        setCertVerified(true);
+                        console.log('✅ 인증번호 검증 성공:', code);
+                    } else {
+                        console.log('❌ 인증번호 검증 실패:', data.error);
+                        alert(data.error || '인증번호가 일치하지 않습니다.');
+                    }
+                } catch (err) {
+                    console.log('❌ 인증번호 검증 오류:', err);
+                    alert('네트워크 오류: 인증번호 검증 실패');
+                }
             }
         }
     };
@@ -400,24 +445,85 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         return result;
     };
 
-    // 휴대폰 번호 자동 포맷팅 함수
-    const formatPhoneNumber = (text: string) => {
-        // 숫자만 추출
+    // 휴대폰 번호 자동 포맷팅 함수 (프론트엔드용)
+    const formatPhoneNumber = (text: string): string => {
+        // 모든 문자 제거하고 숫자만 추출
         const numbers = text.replace(/[^0-9]/g, '');
 
         console.log('📱 휴대폰 번호 포맷팅:', text, '→ 숫자만:', numbers, '→ 길이:', numbers.length);
 
-        let result;
-        if (numbers.length <= 3) {
-            result = numbers;
-        } else if (numbers.length <= 7) {
-            result = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-        } else {
-            result = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+        // 11자리 이상인 경우 11자리까지만 사용
+        const limitedNumbers = numbers.slice(0, 11);
+
+        // 010으로 시작하지 않는 경우 빈 문자열 반환 (또는 원본 반환)
+        if (!limitedNumbers.startsWith('010') && limitedNumbers.length >= 3) {
+            console.log('  결과 (010으로 시작하지 않음):', '');
+            return '';
         }
 
-        console.log('  결과:', result);
-        return result;
+        // 길이에 따른 포맷팅
+        if (limitedNumbers.length <= 3) {
+            // 3자리 이하: 그대로 반환
+            console.log('  결과 (입력 초기):', limitedNumbers);
+            return limitedNumbers;
+        } else if (limitedNumbers.length <= 7) {
+            // 4-7자리: 010-XXXX 형태
+            const formatted = `${limitedNumbers.slice(0, 3)}-${limitedNumbers.slice(3)}`;
+            console.log('  결과 (부분 입력):', formatted);
+            return formatted;
+        } else if (limitedNumbers.length <= 11) {
+            // 8-11자리: 010-XXXX-XXXX 형태 또는 E.164 형식
+            const remaining = limitedNumbers.slice(3);
+
+            // 사용자 친화적 표시 형식 (프론트엔드용)
+            const userFriendlyFormat = `010-${remaining.slice(0, 4)}-${remaining.slice(4)}`;
+
+            // 11자리 완성 시 국제 형식도 함께 제공
+            if (limitedNumbers.length === 11) {
+                // E.164 형식 (API 전송용) - 공백 없음
+                const e164Format = `+8210${remaining}`;
+                console.log('  결과 (완성):', userFriendlyFormat, '/ E.164:', e164Format);
+
+                // 프론트엔드에서는 사용자 친화적 형식 반환
+                // E.164 형식은 별도 함수로 제공하거나 data attribute로 저장
+                return userFriendlyFormat;
+            } else {
+                console.log('  결과 (입력 중):', userFriendlyFormat);
+                return userFriendlyFormat;
+            }
+        }
+
+        // 예외 상황
+        console.log('  결과 (예외):', '');
+        return '';
+    };
+
+    // E.164 형식 검증 함수
+    const isValidE164 = (phoneNumber: string): boolean => {
+        const e164Regex = /^\+[1-9]\d{1,14}$/;
+        return e164Regex.test(phoneNumber);
+    };
+
+    // E.164 형식 변환 함수 (API 전송용)
+    const toE164Format = (phoneNumber: string): string => {
+        // 모든 공백과 특수문자 제거
+        const cleanNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+
+        // 이미 올바른 E.164 형식인 경우
+        if (cleanNumber.match(/^\+[1-9]\d{1,14}$/)) {
+            return cleanNumber;
+        }
+
+        // 숫자만 추출
+        const numbers = cleanNumber.replace(/[^0-9]/g, '');
+
+        // 010으로 시작하는 11자리 한국 휴대폰 번호 검증
+        if (numbers.startsWith('010') && numbers.length === 11) {
+            const remaining = numbers.slice(3); // 010 제거
+            return `+8210${remaining}`; // E.164 형식: +821032839307
+        }
+
+        return ''; // 유효하지 않은 경우 빈 문자열 반환
     };
 
     // 실시간 유효성 검사 함수들
@@ -863,7 +969,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                     placeholder="010-1234-5678"
                                                     placeholderTextColor="#94A3B8"
                                                     keyboardType="phone-pad"
-                                                    maxLength={13}
+                                                    maxLength={15}
                                                     value={field.value}
                                                     onChangeText={(text) => {
                                                         const formatted = formatPhoneNumber(text);
@@ -930,15 +1036,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                         keyboardType="numeric"
                                                         maxLength={6}
                                                         value={field.value}
-                                                        onChangeText={(text) => {
-                                                            field.onChange(text);
-                                                            // 6자리 입력 완료 시 자동 검증 (데모 환경)
-                                                            if (__DEV__ && text.length === 6) {
-                                                                setTimeout(() => {
-                                                                    onVerifyCode();
-                                                                }, 500);
-                                                            }
-                                                        }}
+                                                        onChangeText={field.onChange}
                                                     />
                                                 )} />
                                                 <TouchableOpacity
@@ -958,7 +1056,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                     }}
                                                     disabled={!watch('code') || watch('code').length !== 6}
                                                     activeOpacity={0.8}
-                                                    onPress={onVerifyCode}
+                                                    onPress={() => onVerifyCode()}
                                                 >
                                                     <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
                                                         {certVerified ? '✓ 인증완료' : '인증확인'}
@@ -1362,6 +1460,64 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                 </View>
                             </Animated.View>
                         )}
+                    </View>
+                    <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                        <Text style={{ color: '#6B7280', fontSize: 12, marginBottom: 8, fontWeight: '500' }}>개발 모드</Text>
+                        <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: '#F8FAFC',
+                            borderRadius: 8,
+                            padding: 4,
+                            borderWidth: 1,
+                            borderColor: '#E5E7EB'
+                        }}>
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    borderRadius: 6,
+                                    backgroundColor: isMockMode ? '#10B981' : 'transparent',
+                                    marginRight: 4
+                                }}
+                                onPress={() => setIsMockMode(true)}
+                            >
+                                <Text style={{
+                                    color: isMockMode ? 'white' : '#6B7280',
+                                    fontSize: 12,
+                                    fontWeight: '600'
+                                }}>💡 Mock</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    paddingHorizontal: 12,
+                                    paddingVertical: 6,
+                                    borderRadius: 6,
+                                    backgroundColor: !isMockMode ? '#29588A' : 'transparent',
+                                    marginLeft: 4
+                                }}
+                                onPress={() => setIsMockMode(false)}
+                            >
+                                <Text style={{
+                                    color: !isMockMode ? 'white' : '#6B7280',
+                                    fontSize: 12,
+                                    fontWeight: '600'
+                                }}>📱 실제 SMS</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={{
+                            color: isMockMode ? '#10B981' : '#29588A',
+                            fontSize: 10,
+                            marginTop: 4,
+                            fontWeight: '500'
+                        }}>
+                            {isMockMode ? '💡 데모 환경: 인증번호가 자동으로 생성됩니다' : '📱 실제 SMS 발송 모드'}
+                        </Text>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
