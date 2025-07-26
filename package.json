@@ -14,6 +14,7 @@
     "submit:android": "eas submit --platform android"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.1.1",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "^8.4.1",
     "@react-navigation/bottom-tabs": "^7.4.2",
@@ -22,6 +23,7 @@
     "@tanstack/react-query": "^5.83.0",
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.72.8",
+    "@types/styled-components-react-native": "^5.2.5",
     "axios": "^1.10.0",
     "eslint": "^9.31.0",
     "expo": "~53.0.20",
@@ -44,6 +46,7 @@
     "msw": "^2.10.4",
     "prettier": "^3.6.2",
     "react": "19.0.0",
+    "react-hook-form": "^7.61.1",
     "react-native": "0.79.5",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.24.0",
@@ -61,7 +64,9 @@
     "react-native-video": "^5.2.1",
     "react-native-webrtc": "^1.106.1",
     "recoil": "^0.7.7",
+    "styled-components": "^6.1.19",
     "typescript": "^5.8.3",
+    "yup": "^1.6.1",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

@@ -3,16 +3,16 @@ import { Platform } from 'react-native';
 // Material3 Design Tokens for TIBO App
 export const colors = {
     // Primary Brand Colors
-    primary: '#1CC38C',
+    primary: '#4A90E2', // 파스텔 블루
     onPrimary: '#FFFFFF',
 
     // Surface Colors
     surface: '#FFFFFF',
-    onSurface: '#212121',
-    surfaceVariant: '#F7F9F9',
+    onSurface: '#29588A',
+    surfaceVariant: '#E3F2FD', // 연한 하늘색
 
     // Outline & Borders
-    outline: '#E0E3E7',
+    outline: '#B3E5FC', // 연하늘색
 
     // Status Colors
     error: '#F44336',
