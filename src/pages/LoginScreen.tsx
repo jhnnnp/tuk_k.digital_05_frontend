@@ -12,7 +12,8 @@ import {
     Platform,
     StatusBar,
     Alert,
-    Image
+    Image,
+    Switch
 } from 'react-native';
 import Animated, {
     FadeInUp,
@@ -133,54 +134,81 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
                     <Image source={require('../assets/Text Logo.png')} style={styles.logo} resizeMode="contain" />
                     {/* 타이틀/설명 */}
                     <Text style={[styles.subtitle, { color: theme.textSecondary }]}>회원 서비스 이용을 위해 로그인 해주세요.</Text>
-                    {/* 입력창 */}
+                    {/* 이메일 입력 */}
                     <View style={styles.inputGroup}>
-                        <TextInput
-                            style={[styles.input, { color: theme.textPrimary }]}
-                            placeholder="아이디(이메일)"
-                            placeholderTextColor={theme.textSecondary + '99'}
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                        <TextInput
-                            style={[styles.input, { color: theme.textPrimary }]}
-                            placeholder="비밀번호"
-                            placeholderTextColor={theme.textSecondary + '99'}
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!visiblePW}
-                        />
-                        <TouchableOpacity
-                            style={styles.pwToggle}
-                            onPress={() => setVisiblePW(v => !v)}
-                            hitSlop={10}
-                        >
-                            <Ionicons
-                                name={visiblePW ? 'eye-off-outline' : 'eye-outline'}
-                                size={20}
-                                color={theme.textSecondary}
+                        <View style={[styles.inputContainer, { borderColor: errors.some(e => e.includes('이메일')) ? '#EF4444' : '#e0e3e7' }]}>
+                            <View style={styles.inputIconContainer}>
+                                <Ionicons name="person-outline" size={18} color="#6B7280" />
+                                <Text style={styles.inputLabel}>ID</Text>
+                            </View>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="이메일을 입력하세요"
+                                placeholderTextColor="#94A3B8"
+                                value={email}
+                                onChangeText={setEmail}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                autoCorrect={false}
                             />
-                        </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* 구분선 */}
+                    <View style={styles.divider} />
+
+                    {/* 비밀번호 입력 */}
+                    <View style={styles.inputGroup}>
+                        <View style={[styles.inputContainer, { borderColor: errors.some(e => e.includes('비밀번호')) ? '#EF4444' : '#e0e3e7' }]}>
+                            <View style={styles.inputIconContainer}>
+                                <Ionicons name="lock-closed-outline" size={18} color="#6B7280" />
+                                <Text style={styles.inputLabel}>PW</Text>
+                            </View>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="비밀번호를 입력하세요"
+                                placeholderTextColor="#94A3B8"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!visiblePW}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                            <TouchableOpacity
+                                style={styles.eyeIcon}
+                                onPress={() => setVisiblePW(!visiblePW)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name={visiblePW ? "eye-off-outline" : "eye-outline"}
+                                    size={20}
+                                    color={errors.some(e => e.includes('비밀번호')) ? '#EF4444' : '#6B7280'}
+                                />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                     {/* 자동 로그인 체크박스 */}
-                    <TouchableOpacity
-                        style={styles.checkboxRow}
-                        onPress={toggleAutoLogin}
-                        activeOpacity={0.8}
-                    >
-                        <Animated.View
-                            style={[
-                                styles.checkbox,
-                                autoLogin && { backgroundColor: theme.primary, borderColor: theme.primary },
-                                animatedCheckboxStyle
-                            ]}
-                        >
-                            {autoLogin && <Ionicons name="checkmark" size={14} color={theme.onPrimary} />}
-                        </Animated.View>
-                        <Text style={[styles.checkboxLabel, { color: theme.textPrimary }]}>자동 로그인</Text>
-                    </TouchableOpacity>
+                    <View style={styles.switchRow}>
+                        <View style={styles.leftSection}>
+                            <Animated.View
+                                style={[
+                                    styles.checkbox,
+                                    autoLogin && { backgroundColor: theme.primary, borderColor: theme.primary },
+                                    animatedCheckboxStyle
+                                ]}
+                            >
+                                {autoLogin && <Ionicons name="checkmark" size={14} color={theme.onPrimary} />}
+                            </Animated.View>
+                            <Text style={[styles.switchLabel, { color: theme.textPrimary }]}>자동 로그인</Text>
+                        </View>
+                        <Switch
+                            value={autoLogin}
+                            onValueChange={setAutoLogin}
+                            trackColor={{ false: '#e0e0e0', true: theme.primary }}
+                            thumbColor={autoLogin ? '#fff' : '#f4f3f4'}
+                            ios_backgroundColor="#e0e0e0"
+                        />
+                    </View>
                     {/* 에러 메시지 */}
                     {errors.length > 0 && (
                         <Animated.View
@@ -238,11 +266,23 @@ const styles = StyleSheet.create({
     title: { fontFamily: 'GoogleSans-Bold', fontSize: 22, textAlign: 'center', marginBottom: 8 },
     subtitle: { fontFamily: 'GoogleSans-Regular', fontSize: 15, textAlign: 'center', marginBottom: 28 },
     inputGroup: { width: '100%', marginBottom: 8 },
-    input: { width: '100%', height: 48, borderWidth: 1, borderColor: '#e0e3e7', borderRadius: 10, paddingHorizontal: 16, marginBottom: 12, fontSize: 16, backgroundColor: '#fafbfc' },
-    pwToggle: { position: 'absolute', right: 16, top: 74 },
-    checkboxRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 10, marginTop: 2 },
+    input: {
+        flex: 1,
+        height: 24,
+        borderWidth: 0,
+        paddingHorizontal: 0,
+        fontSize: 16,
+        backgroundColor: 'transparent',
+        color: '#1F2937',
+        fontFamily: 'GoogleSans-Regular',
+        lineHeight: 24,
+    },
+
+    checkboxRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', marginBottom: 10, marginTop: 2 },
     checkbox: { width: 20, height: 20, borderWidth: 1, borderColor: '#bbb', borderRadius: 4, marginRight: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
     checkboxLabel: { color: '#333', fontSize: 15 },
+    switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 10, marginTop: 2 },
+    switchLabel: { color: '#333', fontSize: 15, marginLeft: 8 },
     errorBox: { width: '100%', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 12 },
     errorText: { fontFamily: 'GoogleSans-Medium', fontSize: 13 },
     loginButton: { width: '100%', height: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 18 },
@@ -250,4 +290,48 @@ const styles = StyleSheet.create({
     linkRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     linkText: { color: '#888', fontSize: 13, paddingHorizontal: 6 },
     linkDivider: { color: '#ddd', fontSize: 13 },
+    leftSection: { flexDirection: 'row', alignItems: 'center' },
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#e0e3e7',
+        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 16,
+        height: 56,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    inputIconContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: 10,
+        minWidth: 40,
+    },
+    inputLabel: {
+        fontSize: 14,
+        color: '#6B7280',
+        marginLeft: 4,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+    },
+    divider: {
+        width: '100%',
+        height: 1,
+        backgroundColor: '#e0e3e7',
+        marginVertical: 12,
+    },
+    eyeIcon: {
+        padding: 10,
+        marginLeft: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 40,
+        height: 40,
+    },
 });
