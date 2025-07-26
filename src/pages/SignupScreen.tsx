@@ -83,6 +83,8 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const [termsModalVisible, setTermsModalVisible] = useState(false);
     const [selectedTerms, setSelectedTerms] = useState<{ title: string; content: string } | null>(null);
     const [mockVerificationCode, setMockVerificationCode] = useState<string>('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // 스크롤뷰 참조
     const scrollViewRef = React.useRef<ScrollView>(null);
@@ -348,10 +350,11 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         console.log('  - 인증 요청됨:', certSent);
         console.log('  - 인증 완료:', certVerified);
 
-        if (!name) {
-            console.log('  ❌ 오류: 이름 미입력');
-            return '이름을 입력해주세요';
-        }
+        // 이름 미입력 시 메시지 제거
+        // if (!name) {
+        //     console.log('  ❌ 오류: 이름 미입력');
+        //     return '이름을 입력해주세요';
+        // }
         if (!birthNumbers || birthNumbers.length < 8) {
             console.log('  ❌ 오류: 생년월일 부족 (현재:', birthNumbers.length, '자리)');
             return '생년월일을 완전히 입력해주세요';
@@ -766,26 +769,27 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                             }}>이름</Text>
                                             <TextInput
                                                 style={{
-                                                    backgroundColor: '#fff',
-                                                    height: 52,
-                                                    borderRadius: 12,
-                                                    paddingHorizontal: 18,
+                                                    backgroundColor: '#F8FAFC',
+                                                    height: 56,
+                                                    borderRadius: 16,
+                                                    paddingHorizontal: 20,
                                                     fontSize: 16,
                                                     color: '#1F2937',
-                                                    borderWidth: 1.5,
-                                                    borderColor: errors.name ? '#EF4444' : '#E5E7EB',
+                                                    borderWidth: 2,
+                                                    borderColor: errors.name ? '#EF4444' : '#E2E8F0',
                                                     shadowColor: '#000',
                                                     shadowOffset: { width: 0, height: 2 },
-                                                    shadowOpacity: 0.08,
-                                                    shadowRadius: 4,
-                                                    elevation: 2
+                                                    shadowOpacity: 0.06,
+                                                    shadowRadius: 8,
+                                                    elevation: 3,
+                                                    // 포커스 시 테두리 색상 변경을 위한 준비
                                                 }}
                                                 placeholder="이름을 입력하세요"
-                                                placeholderTextColor="#6B7280"
+                                                placeholderTextColor="#94A3B8"
                                                 value={field.value}
                                                 onChangeText={field.onChange}
                                             />
-                                            {errors.name && <Text style={{ color: '#EF4444', fontSize: 13, marginTop: 6, fontWeight: '500' }}>{errors.name.message}</Text>}
+                                            {/* 이름 에러 메시지 제거 */}
                                         </View>
                                     )} />
 
@@ -800,22 +804,22 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                             }}>생년월일</Text>
                                             <TextInput
                                                 style={{
-                                                    backgroundColor: '#fff',
-                                                    height: 52,
-                                                    borderRadius: 12,
-                                                    paddingHorizontal: 18,
+                                                    backgroundColor: '#F8FAFC',
+                                                    height: 56,
+                                                    borderRadius: 16,
+                                                    paddingHorizontal: 20,
                                                     fontSize: 16,
                                                     color: '#1F2937',
-                                                    borderWidth: 1.5,
-                                                    borderColor: errors.birth ? '#EF4444' : '#E5E7EB',
+                                                    borderWidth: 2,
+                                                    borderColor: errors.birth ? '#EF4444' : '#E2E8F0',
                                                     shadowColor: '#000',
                                                     shadowOffset: { width: 0, height: 2 },
-                                                    shadowOpacity: 0.08,
-                                                    shadowRadius: 4,
-                                                    elevation: 2
+                                                    shadowOpacity: 0.06,
+                                                    shadowRadius: 8,
+                                                    elevation: 3
                                                 }}
                                                 placeholder="YYYY-MM-DD"
-                                                placeholderTextColor="#6B7280"
+                                                placeholderTextColor="#94A3B8"
                                                 keyboardType="numeric"
                                                 maxLength={10}
                                                 value={field.value}
@@ -840,24 +844,24 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                             <Controller name="phone" control={control} render={({ field }) => (
                                                 <TextInput
                                                     style={{
-                                                        backgroundColor: '#fff',
+                                                        backgroundColor: '#F8FAFC',
                                                         flex: 1,
-                                                        height: 52,
-                                                        borderRadius: 12,
-                                                        paddingHorizontal: 18,
+                                                        height: 56,
+                                                        borderRadius: 16,
+                                                        paddingHorizontal: 20,
                                                         fontSize: 16,
                                                         color: '#1F2937',
-                                                        borderWidth: 1.5,
-                                                        borderColor: errors.phone ? '#EF4444' : '#E5E7EB',
+                                                        borderWidth: 2,
+                                                        borderColor: errors.phone ? '#EF4444' : '#E2E8F0',
                                                         marginRight: 12,
                                                         shadowColor: '#000',
                                                         shadowOffset: { width: 0, height: 2 },
-                                                        shadowOpacity: 0.08,
-                                                        shadowRadius: 4,
-                                                        elevation: 2
+                                                        shadowOpacity: 0.06,
+                                                        shadowRadius: 8,
+                                                        elevation: 3
                                                     }}
                                                     placeholder="010-1234-5678"
-                                                    placeholderTextColor="#6B7280"
+                                                    placeholderTextColor="#94A3B8"
                                                     keyboardType="phone-pad"
                                                     maxLength={13}
                                                     value={field.value}
@@ -870,19 +874,20 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                             <TouchableOpacity
                                                 style={{
                                                     backgroundColor: '#29588A',
-                                                    height: 52,
-                                                    paddingHorizontal: 18,
-                                                    borderRadius: 12,
-                                                    minWidth: 90,
+                                                    height: 56,
+                                                    paddingHorizontal: 20,
+                                                    borderRadius: 16,
+                                                    minWidth: 100,
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
                                                     shadowColor: '#29588A',
-                                                    shadowOffset: { width: 0, height: 3 },
-                                                    shadowOpacity: 0.25,
-                                                    shadowRadius: 6,
-                                                    elevation: 4
+                                                    shadowOffset: { width: 0, height: 4 },
+                                                    shadowOpacity: 0.3,
+                                                    shadowRadius: 8,
+                                                    elevation: 6,
+                                                    // 그라데이션 효과를 위한 준비
                                                 }}
-                                                activeOpacity={0.7}
+                                                activeOpacity={0.8}
                                                 onPress={onSendCode}
                                             >
                                                 <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{certSent ? '재요청' : '인증요청'}</Text>
@@ -904,24 +909,24 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                 <Controller name="code" control={control} render={({ field }) => (
                                                     <TextInput
                                                         style={{
-                                                            backgroundColor: '#fff',
+                                                            backgroundColor: '#F8FAFC',
                                                             flex: 1,
-                                                            height: 52,
-                                                            borderRadius: 12,
-                                                            paddingHorizontal: 18,
+                                                            height: 56,
+                                                            borderRadius: 16,
+                                                            paddingHorizontal: 20,
                                                             fontSize: 16,
                                                             color: '#1F2937',
-                                                            borderWidth: 1.5,
-                                                            borderColor: errors.code ? '#EF4444' : '#E5E7EB',
+                                                            borderWidth: 2,
+                                                            borderColor: errors.code ? '#EF4444' : '#E2E8F0',
                                                             marginRight: 12,
                                                             shadowColor: '#000',
                                                             shadowOffset: { width: 0, height: 2 },
-                                                            shadowOpacity: 0.08,
-                                                            shadowRadius: 4,
-                                                            elevation: 2
+                                                            shadowOpacity: 0.06,
+                                                            shadowRadius: 8,
+                                                            elevation: 3
                                                         }}
                                                         placeholder="인증번호 6자리"
-                                                        placeholderTextColor="#6B7280"
+                                                        placeholderTextColor="#94A3B8"
                                                         keyboardType="numeric"
                                                         maxLength={6}
                                                         value={field.value}
@@ -939,20 +944,20 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                 <TouchableOpacity
                                                     style={{
                                                         backgroundColor: certVerified ? '#10B981' : '#29588A',
-                                                        height: 52,
-                                                        paddingHorizontal: 18,
-                                                        borderRadius: 12,
-                                                        minWidth: 90,
+                                                        height: 56,
+                                                        paddingHorizontal: 20,
+                                                        borderRadius: 16,
+                                                        minWidth: 100,
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
                                                         shadowColor: certVerified ? '#10B981' : '#29588A',
-                                                        shadowOffset: { width: 0, height: 3 },
-                                                        shadowOpacity: 0.25,
-                                                        shadowRadius: 6,
-                                                        elevation: 4
+                                                        shadowOffset: { width: 0, height: 4 },
+                                                        shadowOpacity: 0.3,
+                                                        shadowRadius: 8,
+                                                        elevation: 6
                                                     }}
                                                     disabled={!watch('code') || watch('code').length !== 6}
-                                                    activeOpacity={0.7}
+                                                    activeOpacity={0.8}
                                                     onPress={onVerifyCode}
                                                 >
                                                     <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
@@ -1045,23 +1050,6 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                         }}>다음 →</Text>
                                     </TouchableOpacity>
                                 </View>
-                                {!isStep2Valid() && getStep2ValidationMessage() && (
-                                    <View style={{
-                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 8,
-                                        borderRadius: 8,
-                                        marginTop: 8,
-                                        alignSelf: 'center'
-                                    }}>
-                                        <Text style={{
-                                            color: '#EF4444',
-                                            fontSize: 13,
-                                            fontWeight: '500',
-                                            textAlign: 'center'
-                                        }}>⚠️ {getStep2ValidationMessage()}</Text>
-                                    </View>
-                                )}
                             </Animated.View>
                         )}
 
@@ -1092,11 +1080,22 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                 <Text style={{ color: '#374151', fontSize: 14, fontWeight: '500', marginBottom: 8 }}>이메일</Text>
                                                 <TextInput
                                                     style={{
-                                                        backgroundColor: '#fff', height: 48, borderRadius: 8,
-                                                        paddingHorizontal: 16, fontSize: 16, color: '#222',
-                                                        borderWidth: 1, borderColor: emailError ? '#EF4444' : '#D1D5DB'
+                                                        backgroundColor: '#F8FAFC',
+                                                        height: 56,
+                                                        borderRadius: 16,
+                                                        paddingHorizontal: 20,
+                                                        fontSize: 16,
+                                                        color: '#222',
+                                                        borderWidth: 2,
+                                                        borderColor: emailError ? '#EF4444' : '#E2E8F0',
+                                                        shadowColor: '#000',
+                                                        shadowOffset: { width: 0, height: 2 },
+                                                        shadowOpacity: 0.06,
+                                                        shadowRadius: 8,
+                                                        elevation: 3
                                                     }}
                                                     placeholder="이메일을 입력하세요"
+                                                    placeholderTextColor="#94A3B8"
                                                     keyboardType="email-address"
                                                     autoCapitalize="none"
                                                     value={field.value}
@@ -1112,17 +1111,56 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                         return (
                                             <View style={{ marginBottom: 16 }}>
                                                 <Text style={{ color: '#374151', fontSize: 14, fontWeight: '500', marginBottom: 8 }}>비밀번호</Text>
-                                                <TextInput
-                                                    style={{
-                                                        backgroundColor: '#fff', height: 48, borderRadius: 8,
-                                                        paddingHorizontal: 16, fontSize: 16, color: '#222',
-                                                        borderWidth: 1, borderColor: passwordError ? '#EF4444' : '#D1D5DB'
-                                                    }}
-                                                    placeholder="8자 이상, 영문/숫자/특수문자 포함"
-                                                    secureTextEntry
-                                                    value={field.value}
-                                                    onChangeText={field.onChange}
-                                                />
+                                                <View style={{
+                                                    backgroundColor: '#F8FAFC',
+                                                    height: 56,
+                                                    borderRadius: 16,
+                                                    paddingHorizontal: 20,
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    borderWidth: 2,
+                                                    borderColor: passwordError ? '#EF4444' : '#E2E8F0',
+                                                    shadowColor: '#000',
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.06,
+                                                    shadowRadius: 8,
+                                                    elevation: 3
+                                                }}>
+                                                    <TextInput
+                                                        style={{
+                                                            flex: 1,
+                                                            fontSize: 16,
+                                                            color: '#222',
+                                                        }}
+                                                        placeholder="8자 이상, 영문/숫자/특수문자 포함"
+                                                        placeholderTextColor="#94A3B8"
+                                                        secureTextEntry={!showPassword}
+                                                        value={field.value}
+                                                        onChangeText={field.onChange}
+                                                    />
+                                                    <TouchableOpacity
+                                                        onPress={() => setShowPassword(!showPassword)}
+                                                        style={{ padding: 8 }}
+                                                    >
+                                                        <View style={{
+                                                            width: 20,
+                                                            height: 12,
+                                                            borderWidth: 1.5,
+                                                            borderColor: passwordError ? '#EF4444' : '#6B7280',
+                                                            borderRadius: 6,
+                                                            justifyContent: 'center',
+                                                            alignItems: 'center',
+                                                            backgroundColor: showPassword ? 'rgba(107, 114, 128, 0.1)' : 'transparent'
+                                                        }}>
+                                                            <View style={{
+                                                                width: 4,
+                                                                height: 4,
+                                                                borderRadius: 2,
+                                                                backgroundColor: passwordError ? '#EF4444' : '#6B7280'
+                                                            }} />
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                </View>
                                                 {passwordError && <Text style={{ color: '#EF4444', fontSize: 13, marginTop: 4, fontWeight: '500' }}>{passwordError}</Text>}
                                             </View>
                                         );
@@ -1133,17 +1171,56 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                         return (
                                             <View style={{ marginBottom: 16 }}>
                                                 <Text style={{ color: '#374151', fontSize: 14, fontWeight: '500', marginBottom: 8 }}>비밀번호 확인</Text>
-                                                <TextInput
-                                                    style={{
-                                                        backgroundColor: '#fff', height: 48, borderRadius: 8,
-                                                        paddingHorizontal: 16, fontSize: 16, color: '#222',
-                                                        borderWidth: 1, borderColor: confirmError ? '#EF4444' : '#D1D5DB'
-                                                    }}
-                                                    placeholder="비밀번호를 다시 입력하세요"
-                                                    secureTextEntry
-                                                    value={field.value}
-                                                    onChangeText={field.onChange}
-                                                />
+                                                <View style={{
+                                                    backgroundColor: '#F8FAFC',
+                                                    height: 56,
+                                                    borderRadius: 16,
+                                                    paddingHorizontal: 20,
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    borderWidth: 2,
+                                                    borderColor: confirmError ? '#EF4444' : '#E2E8F0',
+                                                    shadowColor: '#000',
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.06,
+                                                    shadowRadius: 8,
+                                                    elevation: 3
+                                                }}>
+                                                    <TextInput
+                                                        style={{
+                                                            flex: 1,
+                                                            fontSize: 16,
+                                                            color: '#222',
+                                                        }}
+                                                        placeholder="비밀번호를 다시 입력하세요"
+                                                        placeholderTextColor="#94A3B8"
+                                                        secureTextEntry={!showConfirmPassword}
+                                                        value={field.value}
+                                                        onChangeText={field.onChange}
+                                                    />
+                                                    <TouchableOpacity
+                                                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                        style={{ padding: 8 }}
+                                                    >
+                                                        <View style={{
+                                                            width: 20,
+                                                            height: 12,
+                                                            borderWidth: 1.5,
+                                                            borderColor: confirmError ? '#EF4444' : '#6B7280',
+                                                            borderRadius: 6,
+                                                            justifyContent: 'center',
+                                                            alignItems: 'center',
+                                                            backgroundColor: showConfirmPassword ? 'rgba(107, 114, 128, 0.1)' : 'transparent'
+                                                        }}>
+                                                            <View style={{
+                                                                width: 4,
+                                                                height: 4,
+                                                                borderRadius: 2,
+                                                                backgroundColor: confirmError ? '#EF4444' : '#6B7280'
+                                                            }} />
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                </View>
                                                 {confirmError && <Text style={{ color: '#EF4444', fontSize: 13, marginTop: 4, fontWeight: '500' }}>{confirmError}</Text>}
                                             </View>
                                         );
@@ -1152,10 +1229,21 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <TouchableOpacity
-                                        style={{ paddingVertical: 12, paddingHorizontal: 16 }}
+                                        style={{
+                                            paddingVertical: 14,
+                                            paddingHorizontal: 20,
+                                            borderRadius: 10,
+                                            backgroundColor: 'rgba(41, 88, 138, 0.1)'
+                                        }}
+                                        activeOpacity={0.7}
                                         onPress={onPrev}
                                     >
-                                        <Text style={{ color: '#29588A', fontSize: 16, fontWeight: '500' }}>이전</Text>
+                                        <Text style={{
+                                            color: '#29588A',
+                                            fontSize: 16,
+                                            fontWeight: '600',
+                                            letterSpacing: 0.5
+                                        }}>← 이전</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={{
@@ -1202,38 +1290,13 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                         {loading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: isStep3Valid() ? '#fff' : '#9CA3AF', fontSize: 16, fontWeight: '600' }}>회원가입</Text>}
                                     </TouchableOpacity>
                                 </View>
-                                {!isStep3Valid() && getStep3ValidationMessage() && (
-                                    <View style={{
-                                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 8,
-                                        borderRadius: 8,
-                                        marginTop: 8,
-                                        alignSelf: 'center'
-                                    }}>
-                                        <Text style={{
-                                            color: '#EF4444',
-                                            fontSize: 13,
-                                            fontWeight: '500',
-                                            textAlign: 'center'
-                                        }}>⚠️ {getStep3ValidationMessage()}</Text>
-                                    </View>
-                                )}
+                                {/* Step3 하단 경고 메시지(알림) 제거 */}
                             </Animated.View>
                         )}
 
                         {step === 4 && (
                             <Animated.View style={[{ width: '100%', maxWidth: 400, alignItems: 'center' }, slideAnimatedStyle]}>
-                                {/* 축하 이모지와 아이콘 */}
                                 <View style={{ alignItems: 'center', marginBottom: 32 }}>
-                                    <View style={{
-                                        width: 80, height: 80, borderRadius: 40,
-                                        backgroundColor: '#E8F4FD', justifyContent: 'center', alignItems: 'center',
-                                        marginBottom: 24, shadowColor: '#29588A', shadowOffset: { width: 0, height: 4 },
-                                        shadowOpacity: 0.1, shadowRadius: 8, elevation: 4
-                                    }}>
-                                        <Text style={{ fontSize: 40 }}>🎉</Text>
-                                    </View>
                                     <Text style={{ color: '#222', fontSize: 32, fontWeight: 'bold', marginBottom: 12 }}>환영합니다!</Text>
                                     <Text style={{ color: '#7BA6D9', fontSize: 18, textAlign: 'center', lineHeight: 26, marginBottom: 8 }}>
                                         회원가입이 완료되었습니다
@@ -1292,19 +1355,10 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                         activeOpacity={0.8}
                                         onPress={onBackToLogin}
                                     >
-                                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>로그인으로 이동</Text>
+                                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>시작하기</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={{
-                                            backgroundColor: 'transparent', paddingVertical: 12, paddingHorizontal: 32,
-                                            borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#D1D5DB'
-                                        }}
-                                        activeOpacity={0.6}
-                                        onPress={() => setStep(1)}
-                                    >
-                                        <Text style={{ color: '#6B7280', fontSize: 14, fontWeight: '500' }}>홈으로 이동</Text>
-                                    </TouchableOpacity>
+
                                 </View>
                             </Animated.View>
                         )}
