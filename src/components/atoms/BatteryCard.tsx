@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../styles/ThemeProvider';
+import AnimatedProgressBar from './AnimatedProgressBar';
 
 interface BatteryCardProps {
     percent: number;
@@ -49,18 +50,15 @@ export const BatteryCard: React.FC<BatteryCardProps> = ({ percent, isCharging = 
                 color={getBatteryColor(percent)}
             />
             <View style={{ flex: 1, marginHorizontal: theme.spacing.xs }}>
-                <View style={{
-                    height: 6,
-                    backgroundColor: theme.outline,
-                    borderRadius: 3,
-                    overflow: 'hidden'
-                }}>
-                    <View style={{
-                        width: `${percent}%`,
-                        height: '100%',
-                        backgroundColor: getBatteryColor(percent)
-                    }} />
-                </View>
+                <AnimatedProgressBar
+                    value={percent}
+                    maxValue={100}
+                    height={6}
+                    borderRadius={3}
+                    showPercentage={false}
+                    showLabel={false}
+                    animationDuration={500}
+                />
             </View>
             <Text style={{
                 fontFamily: 'GoogleSans-Medium',

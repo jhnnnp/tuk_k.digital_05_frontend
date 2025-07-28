@@ -7,12 +7,12 @@ import {
     View,
     Text,
     TouchableOpacity,
-    Switch,
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AnimatedToggleSwitch from '../components/atoms/AnimatedToggleSwitch';
 // import { CommonActions, useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
@@ -163,18 +163,36 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
     };
 
     // 설정 상태
-    const [settings, setSettings] = useState({
-        notifications: true,
-        motionAlerts: true,
-        autoRecord: true,
-        cloudSync: false,
-        faceRecognition: true,
-        quietTimeEnabled: true,
+    const [settings, setSettings] = useState(() => {
+        console.log('🔧 [SETTINGS] 초기 설정 로드');
+        return {
+            notifications: true,
+            motionAlerts: true,
+            autoRecord: true,
+            cloudSync: false,
+            faceRecognition: true,
+            quietTimeEnabled: true,
+        };
     });
 
     // 설정 업데이트 함수
     const updateSetting = (key: string, value: any) => {
-        setSettings(prev => ({ ...prev, [key]: value }));
+        try {
+            console.log(`🔧 [SETTINGS] 설정 업데이트 시작: ${key} = ${value}`);
+            console.log(`🔧 [SETTINGS] 현재 설정 상태:`, settings);
+
+            setSettings(prev => {
+                console.log(`🔧 [SETTINGS] 이전 설정:`, prev);
+                const newSettings = { ...prev, [key]: value };
+                console.log(`🔧 [SETTINGS] 새로운 설정:`, newSettings);
+                return newSettings;
+            });
+
+            console.log(`✅ [SETTINGS] 설정 업데이트 완료: ${key} = ${value}`);
+        } catch (error) {
+            console.error(`❌ [SETTINGS] 설정 업데이트 오류: ${key}`, error);
+            console.error(`❌ [SETTINGS] 오류 스택:`, error.stack);
+        }
     };
 
     // 설정 그룹 컴포넌트
@@ -391,14 +409,14 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                 <SettingsGroup title="내 정보">
                     <SettingsItem
                         icon="shield-checkmark"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
+                        iconColor={theme.success}
+                        iconBg={theme.success + '20'}
                         label="구독"
                         description="HomeCam Pro • 2025년 12월까지"
                         rightElement={
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <View style={{
-                                    backgroundColor: theme.info + '20',
+                                    backgroundColor: theme.success + '20',
                                     borderRadius: 12,
                                     paddingHorizontal: 8,
                                     paddingVertical: 2
@@ -406,7 +424,7 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                                     <Text style={{
                                         fontFamily: 'GoogleSans-Medium',
                                         fontSize: 10,
-                                        color: theme.info
+                                        color: theme.success
                                     }}>
                                         활성
                                     </Text>
@@ -418,8 +436,8 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                     />
                     <SettingsItem
                         icon="shield-checkmark"
-                        iconColor={theme.primary}
-                        iconBg={theme.primary + '20'}
+                        iconColor={theme.success}
+                        iconBg={theme.success + '20'}
                         label="2단계 인증"
                         description="계정 보안을 강화하세요"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -432,32 +450,52 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                 <SettingsGroup title="알림 및 감지">
                     <SettingsItem
                         icon="notifications"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
                         label="푸시 알림"
                         description="기기에서 알림을 받습니다"
                         rightElement={
-                            <Switch
+                            <AnimatedToggleSwitch
                                 value={settings.notifications}
-                                onValueChange={(value) => updateSetting('notifications', value)}
-                                trackColor={{ false: theme.outline, true: theme.primary }}
-                                thumbColor={settings.notifications ? theme.onPrimary : theme.surface}
+                                onValueChange={(value) => {
+                                    try {
+                                        console.log(`🔔 [NOTIFICATIONS] 토글 변경: ${value}`);
+                                        updateSetting('notifications', value);
+                                    } catch (error) {
+                                        console.error('❌ [NOTIFICATIONS] 토글 오류:', error);
+                                    }
+                                }}
+                                activeColor={theme.primary}
+                                inactiveColor={theme.outline}
+                                thumbColor={theme.surface}
+                                accessibilityLabel="푸시 알림"
+                                accessibilityHint="푸시 알림을 켜거나 끕니다"
                             />
                         }
                     />
                     <SettingsItem
                         icon="camera"
-                        iconColor={theme.error}
-                        iconBg={theme.error + '20'}
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
                         label="움직임 감지"
                         description="움직임이 감지될 때 알림"
                         rightElement={
-                            <Switch
+                            <AnimatedToggleSwitch
                                 value={settings.motionAlerts}
-                                onValueChange={(value) => updateSetting('motionAlerts', value)}
+                                onValueChange={(value) => {
+                                    try {
+                                        console.log(`🎥 [MOTION ALERTS] 토글 변경: ${value}`);
+                                        updateSetting('motionAlerts', value);
+                                    } catch (error) {
+                                        console.error('❌ [MOTION ALERTS] 토글 오류:', error);
+                                    }
+                                }}
+                                activeColor={theme.primary}
+                                inactiveColor={theme.outline}
+                                thumbColor={theme.surface}
                                 disabled={!settings.notifications}
-                                trackColor={{ false: theme.outline, true: theme.primary }}
-                                thumbColor={settings.motionAlerts ? theme.onPrimary : theme.surface}
+                                accessibilityLabel="움직임 감지"
+                                accessibilityHint="움직임이 감지될 때 알림을 받습니다"
                             />
                         }
                     />
@@ -468,18 +506,28 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                         label="얼굴 인식"
                         description="알려진 사람을 식별합니다"
                         rightElement={
-                            <Switch
+                            <AnimatedToggleSwitch
                                 value={settings.faceRecognition}
-                                onValueChange={(value) => updateSetting('faceRecognition', value)}
-                                trackColor={{ false: theme.outline, true: theme.primary }}
-                                thumbColor={settings.faceRecognition ? theme.onPrimary : theme.surface}
+                                onValueChange={(value) => {
+                                    try {
+                                        console.log(`👤 [FACE RECOGNITION] 토글 변경: ${value}`);
+                                        updateSetting('faceRecognition', value);
+                                    } catch (error) {
+                                        console.error('❌ [FACE RECOGNITION] 토글 오류:', error);
+                                    }
+                                }}
+                                activeColor={theme.primary}
+                                inactiveColor={theme.outline}
+                                thumbColor={theme.surface}
+                                accessibilityLabel="얼굴 인식"
+                                accessibilityHint="알려진 사람을 식별합니다"
                             />
                         }
                     />
                     <SettingsItem
                         icon="moon"
-                        iconColor={settings.quietTimeEnabled ? theme.warning : theme.textSecondary}
-                        iconBg={settings.quietTimeEnabled ? theme.warning + '20' : theme.surfaceVariant}
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
                         label="무음 시간"
                         description="오후 10:00 - 오전 7:00"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -497,18 +545,31 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                         label="자동 녹화"
                         description="움직임 감지 시 자동으로 녹화"
                         rightElement={
-                            <Switch
+                            <AnimatedToggleSwitch
                                 value={settings.autoRecord}
-                                onValueChange={(value) => updateSetting('autoRecord', value)}
-                                trackColor={{ false: theme.outline, true: theme.primary }}
-                                thumbColor={settings.autoRecord ? theme.onPrimary : theme.surface}
+                                onValueChange={(value) => {
+                                    try {
+                                        console.log(`🎬 [AUTO RECORD] 토글 변경 시작: ${value}`);
+                                        console.log(`🎬 [AUTO RECORD] 현재 autoRecord 값:`, settings.autoRecord);
+                                        updateSetting('autoRecord', value);
+                                        console.log(`🎬 [AUTO RECORD] 토글 변경 완료: ${value}`);
+                                    } catch (error) {
+                                        console.error('❌ [AUTO RECORD] 토글 오류:', error);
+                                        console.error('❌ [AUTO RECORD] 오류 스택:', error.stack);
+                                    }
+                                }}
+                                activeColor={theme.primary}
+                                inactiveColor={theme.outline}
+                                thumbColor={theme.surface}
+                                accessibilityLabel="자동 녹화"
+                                accessibilityHint="움직임 감지 시 자동으로 녹화합니다"
                             />
                         }
                     />
                     <SettingsItem
                         icon="hardware-chip"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
+                        iconColor={theme.error}
+                        iconBg={theme.error + '20'}
                         label="화질 설정"
                         description="고화질 (1080p)"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -516,8 +577,8 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                     />
                     <SettingsItem
                         icon="time"
-                        iconColor={theme.primary}
-                        iconBg={theme.primary + '20'}
+                        iconColor={theme.error}
+                        iconBg={theme.error + '20'}
                         label="데이터 보관"
                         description="30일 동안 녹화본 보관"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -525,16 +586,29 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                     />
                     <SettingsItem
                         icon="cloud-upload"
-                        iconColor={theme.primary}
-                        iconBg={theme.primary + '20'}
+                        iconColor={theme.error}
+                        iconBg={theme.error + '20'}
                         label="클라우드 동기화"
                         description="클라우드에 녹화본 백업"
                         rightElement={
-                            <Switch
+                            <AnimatedToggleSwitch
                                 value={settings.cloudSync}
-                                onValueChange={(value) => updateSetting('cloudSync', value)}
-                                trackColor={{ false: theme.outline, true: theme.primary }}
-                                thumbColor={settings.cloudSync ? theme.onPrimary : theme.surface}
+                                onValueChange={(value) => {
+                                    try {
+                                        console.log(`☁️ [CLOUD SYNC] 토글 변경 시작: ${value}`);
+                                        console.log(`☁️ [CLOUD SYNC] 현재 cloudSync 값:`, settings.cloudSync);
+                                        updateSetting('cloudSync', value);
+                                        console.log(`☁️ [CLOUD SYNC] 토글 변경 완료: ${value}`);
+                                    } catch (error) {
+                                        console.error('❌ [CLOUD SYNC] 토글 오류:', error);
+                                        console.error('❌ [CLOUD SYNC] 오류 스택:', error.stack);
+                                    }
+                                }}
+                                activeColor={theme.primary}
+                                inactiveColor={theme.outline}
+                                thumbColor={theme.surface}
+                                accessibilityLabel="클라우드 동기화"
+                                accessibilityHint="클라우드에 녹화본을 백업합니다"
                             />
                         }
                         isLast
@@ -568,13 +642,13 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                     />
                     <SettingsItem
                         icon="information-circle"
-                        iconColor={theme.textSecondary}
-                        iconBg={theme.surfaceVariant}
+                        iconColor={theme.info}
+                        iconBg={theme.info + '20'}
                         label="앱 정보"
                         description="버전 1.2.3 (빌드 456)"
                         rightElement={
                             <View style={{
-                                backgroundColor: theme.surfaceVariant,
+                                backgroundColor: theme.info + '20',
                                 borderRadius: 12,
                                 paddingHorizontal: 8,
                                 paddingVertical: 2
@@ -582,7 +656,7 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                                 <Text style={{
                                     fontFamily: 'GoogleSans-Medium',
                                     fontSize: 10,
-                                    color: theme.textSecondary
+                                    color: theme.info
                                 }}>
                                     최신
                                 </Text>

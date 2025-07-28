@@ -42,6 +42,8 @@ import { Joystick } from '../components/atoms/Joystick';
 import { liveStreamService, LiveStreamState } from '../services/LiveStreamService';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import FeedbackCircleButton from '../components/atoms/FeedbackCircleButton';
+import CaptureToast from '../components/atoms/CaptureToast';
 
 // Performance optimized animated components
 // const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -71,11 +73,11 @@ const quickActions = [
         label: '녹화',
         icon: 'ellipse-outline',
         activeIcon: 'stop-circle',
-        color: '#F44336',
+        color: '#FF4444', // 쨍한 빨간색
         category: 'recording'
     },
     {
-        id: 'gallery',
+        id: 'capture',
         label: '캡쳐',
         icon: 'camera-outline',
         activeIcon: 'camera',
@@ -99,11 +101,11 @@ const quickActions = [
         category: 'zoom'
     },
     {
-        id: 'audio',
+        id: 'voice',
         label: '음성',
         icon: 'mic-outline',
         activeIcon: 'mic',
-        color: '#FF9800',
+        color: '#4A90E2', // 쨍한 파란색
         category: 'audio'
     }
 ];
@@ -135,6 +137,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
     const [selectedAction, setSelectedAction] = useState<string | null>(null);
     const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
     const [streamState, setStreamState] = useState<LiveStreamState>(liveStreamService.getState());
+    const [showCaptureToast, setShowCaptureToast] = useState(false);
 
     // Animated values for enhanced UX
     const zoomScale = useSharedValue(1);
@@ -192,7 +195,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
             case 'record':
                 liveStreamService.toggleRecording();
                 break;
-            case 'audio':
+            case 'voice':
                 liveStreamService.toggleMic();
                 break;
             case 'zoomIn':
@@ -200,6 +203,9 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                 break;
             case 'zoomOut':
                 handleZoomOut();
+                break;
+            case 'capture':
+                handleCapture();
                 break;
             case 'gallery':
                 handleCapture();
@@ -227,10 +233,14 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
     }, [zoomScale]);
 
     const handleCapture = useCallback(() => {
-        // 바로 캡쳐 애니메이션 및 완료 처리 (알림 없이)
-        videoOpacity.value = withTiming(0.5, { duration: 100 }, () => {
-            videoOpacity.value = withTiming(1, { duration: 100 });
+        // 부드러운 캡쳐 애니메이션
+        videoOpacity.value = withTiming(0.3, { duration: 150 }, () => {
+            videoOpacity.value = withTiming(1, { duration: 200 });
         });
+
+        // 프로페셔널한 캡쳐 완료 피드백
+        setShowCaptureToast(true);
+
         // 실제 캡쳐 로직이 있다면 이곳에 추가
         // 예: saveScreenshotToGallery();
     }, [videoOpacity]);
@@ -245,8 +255,8 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
         }
     }, []);
 
-    // Enhanced switch component
-    const AnimatedSwitch = React.memo(({
+    // Modern and cute toggle switch component
+    const ModernToggleSwitch = React.memo(({
         value,
         onValueChange
     }: {
@@ -254,31 +264,70 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
         onValueChange: (value: boolean) => void;
     }) => {
         const switchScale = useSharedValue(1);
+        const thumbTranslateX = useSharedValue(0);
 
         const handleChange = useCallback((newValue: boolean) => {
-            switchScale.value = withSpring(0.9, { damping: 15 }, () => {
-                switchScale.value = withSpring(1, { damping: 15 });
+            // Scale animation
+            switchScale.value = withSpring(0.9, { damping: 15, stiffness: 400 }, () => {
+                switchScale.value = withSpring(1, { damping: 15, stiffness: 400 });
             });
+
+            // Thumb movement animation
+            thumbTranslateX.value = withSpring(newValue ? 36 : 0, { damping: 20, stiffness: 300 });
+
             onValueChange(newValue);
-        }, [onValueChange, switchScale]);
+        }, [onValueChange, switchScale, thumbTranslateX]);
 
         const animatedSwitchStyle = useAnimatedStyle(() => ({
             transform: [{ scale: switchScale.value }],
         }));
 
+        const animatedThumbStyle = useAnimatedStyle(() => ({
+            transform: [{ translateX: thumbTranslateX.value }],
+        }));
+
         return (
-            <Animated.View style={animatedSwitchStyle}>
-                <Switch
-                    value={value}
-                    onValueChange={handleChange}
-                    trackColor={{ false: theme.outline, true: theme.primary }}
-                    thumbColor={value ? theme.onPrimary : theme.surfaceVariant}
-                />
+            <Animated.View style={[styles.toggleContainer, animatedSwitchStyle]}>
+                <TouchableOpacity
+                    style={[
+                        styles.toggleTrack,
+                        {
+                            backgroundColor: value ? '#5B9BD5' : '#f8fafc',
+                        }
+                    ]}
+                    onPress={() => handleChange(!value)}
+                    activeOpacity={0.7}
+                >
+                    <Animated.View
+                        style={[
+                            styles.toggleThumb,
+                            animatedThumbStyle,
+                        ]}
+                    >
+                        <Ionicons
+                            name={value ? "game-controller" : "game-controller-outline"}
+                            size={16}
+                            color={value ? "#5B9BD5" : "#94a3b8"}
+                        />
+                    </Animated.View>
+
+                    <View style={styles.toggleLabel}>
+                        <Text style={[
+                            styles.toggleText,
+                            {
+                                color: value ? '#ffffff' : '#94a3b8',
+                                opacity: value ? 1 : 0.6,
+                            }
+                        ]}>
+                            {value ? 'ON' : 'OFF'}
+                        </Text>
+                    </View>
+                </TouchableOpacity>
             </Animated.View>
         );
     });
 
-    // Enhanced action button component
+    // Enhanced action button component using FeedbackCircleButton
     const ActionButton = React.memo(({
         action,
         isActive,
@@ -292,51 +341,23 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
         delay?: number;
         disabled: boolean;
     }) => {
-        const buttonScale = useSharedValue(1);
-        const buttonOpacity = useSharedValue(1);
-
-        const animatedButtonStyle = useAnimatedStyle(() => ({
-            transform: [{ scale: buttonScale.value }],
-            opacity: buttonOpacity.value,
-        }));
-
-        const handlePressIn = useCallback(() => {
-            buttonScale.value = withSpring(0.9, { damping: 15 });
-            buttonOpacity.value = withTiming(0.8, { duration: 100 });
-        }, [buttonScale, buttonOpacity]);
-
-        const handlePressOut = useCallback(() => {
-            buttonScale.value = withSpring(1, { damping: 15 });
-            buttonOpacity.value = withTiming(1, { duration: 100 });
-        }, [buttonScale, buttonOpacity]);
-
         return (
             <Animated.View
                 // entering={FadeInUp.delay(delay).springify()}
                 style={styles.actionButton}
             >
-                <Pressable
-                    style={[styles.actionCircle, animatedButtonStyle]}
-                    onPressIn={handlePressIn}
-                    onPressOut={handlePressOut}
-                    onPress={() => {
-                        console.log('[Pressable] onPress', action.id, 'disabled:', disabled);
-                        onPress();
-                    }}
+                <FeedbackCircleButton
+                    icon={action.id}
+                    label={action.label}
+                    onPress={onPress}
+                    activeColor={action.color}
+                    size={60}
+                    hapticFeedback={true}
+                    scaleAnimation={true}
+                    rippleEffect={true}
                     disabled={disabled}
-                >
-                    <Ionicons
-                        name={isActive ? (action.activeIcon as any) : (action.icon as any)}
-                        size={28}
-                        color={isActive ? '#fff' : action.color}
-                    />
-                </Pressable>
-                <Text style={[
-                    styles.actionLabel,
-                    { color: isActive ? action.color : '#888' }
-                ]}>
-                    {action.label}
-                </Text>
+                    isActive={isActive}
+                />
             </Animated.View>
         );
     });
@@ -435,11 +456,19 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                     // entering={FadeInUp.delay(400).springify()}
                     >
                         <View style={styles.controlHeader}>
-                            <View>
-                                <Text style={[styles.controlTitle, { color: theme.textPrimary }]}>로봇 컨트롤</Text>
-                                <Text style={[styles.controlSubtitle, { color: theme.textSecondary }]}>이동모드 {moveMode ? 'ON' : 'OFF'}</Text>
+                            <View style={styles.controlTextContainer}>
+                                <View style={styles.titleRow}>
+                                    <Ionicons name="game-controller" size={20} color="#60a5fa" style={styles.titleIcon} />
+                                    <Text style={[styles.controlTitle, { color: theme.textPrimary }]}>Remote Control</Text>
+                                </View>
+                                <View style={styles.subtitleRow}>
+                                    <View style={[styles.statusDot, { backgroundColor: moveMode ? '#10b981' : '#9ca3af' }]} />
+                                    <Text style={[styles.controlSubtitle, { color: theme.textSecondary }]}>
+                                        이동모드 {moveMode ? 'ON' : 'OFF'}
+                                    </Text>
+                                </View>
                             </View>
-                            <AnimatedSwitch
+                            <ModernToggleSwitch
                                 value={moveMode}
                                 onValueChange={setMoveMode}
                             />
@@ -452,7 +481,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                             {quickActions.map((action, index) => {
                                 let isActive = false;
                                 if (action.id === 'record') isActive = streamState && streamState.isRecording;
-                                else if (action.id === 'audio') isActive = streamState && streamState.isMicOn;
+                                else if (action.id === 'voice') isActive = streamState && streamState.isMicOn;
                                 else if (action.id === 'zoomIn') isActive = zoomScale.value > 1;
                                 else if (action.id === 'zoomOut') isActive = zoomScale.value > 1;
                                 else isActive = selectedAction === action.id;
@@ -473,22 +502,33 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                                 );
                             })}
                         </View>
-                        {/* Enhanced Joystick */}
+                        {/* 귀여운 로봇 조이스틱 */}
                         <Animated.View
                             style={[styles.joystickContainer, joystickAnimatedStyle]}
                         // entering={FadeInUp.delay(600).springify()}
                         >
                             <View style={styles.joystickWrapper}>
+                                <View style={styles.joystickLabel}>
+                                    <Ionicons name="game-controller" size={16} color="#60a5fa" />
+                                    <Text style={styles.joystickLabelText}>수동 조작</Text>
+                                </View>
                                 <Joystick
                                     size={Math.min(300, Math.round(Dimensions.get('window').width * 0.65))}
                                     onMove={handleJoystickMove}
                                 />
+                                <View style={styles.joystickHint}>
+                                    <Text style={styles.joystickHintText}>👆 터치해서 로봇을 움직여보세요!</Text>
+                                </View>
                             </View>
-                            {/* X, Y 좌표 텍스트 완전히 제거 */}
                         </Animated.View>
                     </Card>
                 </View>
             </SafeAreaView>
+            {/* 커스텀 캡쳐 토스트 */}
+            <CaptureToast
+                visible={showCaptureToast}
+                onHide={() => setShowCaptureToast(false)}
+            />
             {/* ToastMessage 컴포넌트는 앱 루트(App.tsx 등)에 <Toast />로 한 번만 추가 필요 */}
             <Toast />
         </GestureHandlerRootView>
@@ -588,25 +628,50 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: 20,
+        paddingHorizontal: 0,
     },
     controlTitle: {
-        fontFamily: 'GoogleSans-Bold',
-        fontSize: 20,
-        fontWeight: '700',
+        fontFamily: 'GoogleSans-Regular',
+        fontSize: 19,
+        fontWeight: '500',
+        letterSpacing: 0.8,
+    },
+    controlTextContainer: {
+        flex: 1,
+        alignItems: 'flex-start',
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    titleIcon: {
+        marginRight: 8,
+    },
+    subtitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        marginRight: 6,
     },
     controlSubtitle: {
         fontFamily: 'GoogleSans-Regular',
-        fontSize: 14,
-        marginTop: 2,
-        opacity: 0.8,
+        fontSize: 13,
+        opacity: 0.7,
+        letterSpacing: 0.3,
     },
     actionGrid: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 8,
+        gap: 12,
         marginTop: 0,
-        paddingHorizontal: 16,
+        paddingHorizontal: 20,
+        paddingLeft: 20,
     },
     actionButton: {
         alignItems: 'center',
@@ -639,12 +704,81 @@ const styles = StyleSheet.create({
     joystickWrapper: {
         padding: 20,
         borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: 'transparent',
+    },
+    joystickLabel: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+        gap: 8,
+    },
+    joystickLabelText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#60a5fa',
+    },
+    joystickHint: {
+        marginTop: 12,
+        alignItems: 'center',
+    },
+    joystickHintText: {
+        fontFamily: 'GoogleSans-Regular',
+        fontSize: 12,
+        color: '#6b7280',
+        textAlign: 'center',
     },
     positionText: {
         fontFamily: 'GoogleSans-Regular',
         fontSize: 12,
         marginTop: 12,
         textAlign: 'center',
+    },
+    toggleContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    toggleTrack: {
+        width: 72,
+        height: 36,
+        borderRadius: 18,
+        position: 'relative',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    toggleThumb: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        position: 'absolute',
+        left: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    toggleLabel: {
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+        paddingLeft: 36,
+    },
+    toggleText: {
+        fontFamily: 'GoogleSans-Medium',
+        fontSize: 11,
+        fontWeight: '500',
     },
 }); 

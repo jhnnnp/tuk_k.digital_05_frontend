@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../styles/ThemeProvider';
+import AnimatedProgressBar from './AnimatedProgressBar';
 
 interface WiFiCardProps {
     dBm: number;
@@ -50,19 +51,16 @@ export const WiFiCard: React.FC<WiFiCardProps> = ({ dBm, ssid }) => {
                 size={18}
                 color={color}
             />
-            <View style={{ flexDirection: 'row', gap: 2 }}>
-                {[1, 2, 3, 4].map((barLevel) => (
-                    <View
-                        key={barLevel}
-                        style={{
-                            width: 16,
-                            height: 6,
-                            borderRadius: 3,
-                            backgroundColor: barLevel <= level ? color : theme.outline,
-                            opacity: barLevel <= level ? 1 : 0.2
-                        }}
-                    />
-                ))}
+            <View style={{ flex: 1, marginHorizontal: theme.spacing.xs }}>
+                <AnimatedProgressBar
+                    value={level * 25} // 1-4 레벨을 25-100%로 변환
+                    maxValue={100}
+                    height={6}
+                    borderRadius={3}
+                    showPercentage={false}
+                    showLabel={false}
+                    animationDuration={500}
+                />
             </View>
             <Text style={{
                 fontFamily: 'GoogleSans-Medium',
