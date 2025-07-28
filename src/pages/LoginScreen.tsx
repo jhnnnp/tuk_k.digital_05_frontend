@@ -1,5 +1,5 @@
 // src/screens/Auth/LoginScreen.tsx
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
     SafeAreaView,
     View,
@@ -60,8 +60,12 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
     const [password, setPassword] = useState('');
     const [visiblePW, setVisiblePW] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [autoLogin, setAutoLogin] = useState(false);
+    const [autoLogin, setAutoLogin] = useState(true); // 기본값을 true로 변경
     const [errors, setErrors] = useState<string[]>([]);
+
+    useEffect(() => {
+        AsyncStorage.setItem('autoLogin', autoLogin ? 'true' : 'false');
+    }, [autoLogin]);
 
     // ────────────────────────────────────────────────────────────────────────────────
     // Memoized validation results
@@ -77,14 +81,23 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
     // Handlers
     // ────────────────────────────────────────────────────────────────────────────────
     const handleLogin = useCallback(async () => {
+        console.log('==============================');
+        console.log('[LOGIN] 로그인 시도 시작');
+        console.log(`  📧 이메일: ${email}`);
+        console.log(`  🔐 자동로그인: ${autoLogin ? '활성화' : '비활성화'}`);
+        console.log('==============================');
+
         setErrors([]);
         if (validationErrors.length) {
+            console.log('❌ [LOGIN] 유효성 검사 실패');
+            console.log('  📝 오류 목록:', validationErrors);
             setErrors(validationErrors);
             return;
         }
 
         setLoading(true);
         try {
+            console.log('🌐 [LOGIN] 서버 요청 시작');
             const res = await fetch('http://localhost:3000/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -94,21 +107,51 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
             const data = await res.json();
 
             if (!res.ok) {
+                console.log('❌ [LOGIN] 로그인 실패');
+                console.log(`  📊 상태 코드: ${res.status}`);
+                console.log(`  📝 오류 메시지: ${data.error || '로그인 실패'}`);
                 setErrors([data.error || '로그인 실패']);
             } else if (data.accessToken) {
-                if (autoLogin) {
+                console.log('✅ [LOGIN] 로그인 성공');
+                console.log(`  👤 사용자 ID: ${data.user?.userId || 'N/A'}`);
+                console.log(`  📧 사용자 이메일: ${data.user?.email || 'N/A'}`);
+                console.log(`  🔐 토큰 발급: ${data.accessToken ? '성공' : '실패'}`);
+                console.log(`  🔐 토큰 길이: ${data.accessToken?.length || 0}자`);
+                console.log(`  🔐 토큰 시작: ${data.accessToken?.substring(0, 20) || 'N/A'}...`);
+
+                // 토큰 저장 로직 개선 - 로그인 성공 시 항상 토큰 저장
+                try {
                     await storage.set('token', data.accessToken);
-                } else {
-                    await storage.remove('token');
+                    console.log('💾 [LOGIN] 토큰 저장 완료');
+
+                    // 토큰 저장 확인
+                    const savedToken = await storage.get('token');
+                    console.log(`  🔍 저장된 토큰 확인: ${savedToken ? '성공' : '실패'}`);
+
+                    if (!savedToken) {
+                        console.log('⚠️ [LOGIN] 토큰 저장 확인 실패 - 다시 시도');
+                        await storage.set('token', data.accessToken);
+                        const retryToken = await storage.get('token');
+                        console.log(`  🔍 재시도 토큰 확인: ${retryToken ? '성공' : '실패'}`);
+                    }
+                } catch (tokenError) {
+                    console.log('❌ [LOGIN] 토큰 저장 실패');
+                    console.log('  📝 오류 내용:', tokenError);
                 }
+
+                console.log('🎉 [LOGIN] 로그인 프로세스 완료');
                 onLoginSuccess();
             } else {
+                console.log('❌ [LOGIN] 토큰 없음 - 알 수 없는 오류');
                 setErrors(['알 수 없는 오류가 발생했습니다.']);
             }
         } catch (err) {
+            console.log('❌ [LOGIN] 네트워크 오류');
+            console.log('  📝 오류 내용:', err);
             setErrors(['서버와 연결할 수 없습니다. 나중에 다시 시도해주세요.']);
         } finally {
             setLoading(false);
+            console.log('🏁 [LOGIN] 로그인 프로세스 종료');
         }
     }, [email, password, autoLogin, validationErrors, onLoginSuccess]);
 

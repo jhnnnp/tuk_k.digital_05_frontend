@@ -26,31 +26,141 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
 
     useEffect(() => {
         const fetchProfile = async () => {
+            console.log('==============================');
+            console.log('[PROFILE] 프로필 정보 로딩 시작');
+
             setProfileLoading(true);
             setProfileError('');
+
             try {
                 const token = await AsyncStorage.getItem('token');
+                console.log(`  🔐 토큰 존재: ${token ? '있음' : '없음'}`);
+                if (token) {
+                    console.log(`  🔐 토큰 길이: ${token.length}자`);
+                    console.log(`  🔐 토큰 시작: ${token.substring(0, 20)}...`);
+                }
+
                 if (!token) {
+                    console.log('❌ [PROFILE] 토큰이 없음 - 로그인 필요');
                     setProfileError('로그인이 필요합니다.');
                     setProfileLoading(false);
                     return;
                 }
+
+                console.log('🌐 [PROFILE] 서버 요청 시작');
+                console.log(`  🔗 API URL: http://localhost:3000/api/auth/account`);
+                console.log(`  🔐 Authorization Header: Bearer ${token.substring(0, 20)}...`);
+
                 const res = await fetch('http://localhost:3000/api/auth/account', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
+
+                console.log(`  📊 응답 상태: ${res.status}`);
+
                 if (res.ok) {
                     const data = await res.json();
-                    setProfile({ name: data.name, email: data.email });
+                    console.log('✅ [PROFILE] 프로필 정보 로딩 성공');
+                    console.log(`  👤 이름: ${data.name || 'N/A'}`);
+                    console.log(`  📧 이메일: ${data.email || 'N/A'}`);
+                    console.log(`  🆔 사용자 ID: ${data.userId || 'N/A'}`);
+
+                    setProfile({
+                        name: data.name || '알 수 없음',
+                        email: data.email || '알 수 없음'
+                    });
                 } else {
+                    const errorData = await res.json().catch(() => ({}));
+                    console.log('❌ [PROFILE] 프로필 정보 로딩 실패');
+                    console.log(`  📝 오류 메시지: ${errorData.error || '알 수 없는 오류'}`);
                     setProfileError('프로필 정보를 불러올 수 없습니다.');
                 }
             } catch (err) {
+                console.log('❌ [PROFILE] 네트워크 오류');
+                console.log('  📝 오류 내용:', err);
                 setProfileError('서버 오류가 발생했습니다.');
             }
+
             setProfileLoading(false);
+            console.log('🏁 [PROFILE] 프로필 정보 로딩 완료');
+            console.log('==============================');
         };
+
         fetchProfile();
+
+        // 3초 후 다시 한 번 프로필 새로고침 (토큰이 늦게 저장될 수 있음)
+        const timer = setTimeout(() => {
+            console.log('⏰ [PROFILE] 3초 후 자동 새로고침');
+            fetchProfile();
+        }, 3000);
+
+        return () => clearTimeout(timer);
     }, []);
+
+    // 프로필 새로고침 함수
+    const refreshProfile = async () => {
+        console.log('🔄 [PROFILE] 수동 프로필 새로고침');
+        const fetchProfile = async () => {
+            console.log('==============================');
+            console.log('[PROFILE] 프로필 정보 로딩 시작');
+
+            setProfileLoading(true);
+            setProfileError('');
+
+            try {
+                const token = await AsyncStorage.getItem('token');
+                console.log(`  🔐 토큰 존재: ${token ? '있음' : '없음'}`);
+                if (token) {
+                    console.log(`  🔐 토큰 길이: ${token.length}자`);
+                    console.log(`  🔐 토큰 시작: ${token.substring(0, 20)}...`);
+                }
+
+                if (!token) {
+                    console.log('❌ [PROFILE] 토큰이 없음 - 로그인 필요');
+                    setProfileError('로그인이 필요합니다.');
+                    setProfileLoading(false);
+                    return;
+                }
+
+                console.log('🌐 [PROFILE] 서버 요청 시작');
+                console.log(`  🔗 API URL: http://localhost:3000/api/auth/account`);
+                console.log(`  🔐 Authorization Header: Bearer ${token.substring(0, 20)}...`);
+
+                const res = await fetch('http://localhost:3000/api/auth/account', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                console.log(`  📊 응답 상태: ${res.status}`);
+
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('✅ [PROFILE] 프로필 정보 로딩 성공');
+                    console.log(`  👤 이름: ${data.name || 'N/A'}`);
+                    console.log(`  📧 이메일: ${data.email || 'N/A'}`);
+                    console.log(`  🆔 사용자 ID: ${data.userId || 'N/A'}`);
+
+                    setProfile({
+                        name: data.name || '알 수 없음',
+                        email: data.email || '알 수 없음'
+                    });
+                } else {
+                    const errorData = await res.json().catch(() => ({}));
+                    console.log('❌ [PROFILE] 프로필 정보 로딩 실패');
+                    console.log(`  📝 오류 메시지: ${errorData.error || '알 수 없는 오류'}`);
+                    setProfileError('프로필 정보를 불러올 수 없습니다.');
+                }
+            } catch (err) {
+                console.log('❌ [PROFILE] 네트워크 오류');
+                console.log('  📝 오류 내용:', err);
+                setProfileError('서버 오류가 발생했습니다.');
+            }
+
+            setProfileLoading(false);
+            console.log('🏁 [PROFILE] 프로필 정보 로딩 완료');
+            console.log('==============================');
+        };
+
+        await fetchProfile();
+    };
 
     // 설정 상태
     const [settings, setSettings] = useState({
@@ -181,6 +291,8 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
 
     // 핸들러 함수들
     const handleProfileEdit = () => {
+        console.log('👆 [PROFILE] 프로필 카드 탭됨');
+        refreshProfile(); // 프로필 새로고침
         Alert.alert('프로필 편집', '프로필 정보를 수정하시겠습니까?');
     };
 

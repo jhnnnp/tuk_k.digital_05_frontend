@@ -87,7 +87,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const [mockVerificationCode, setMockVerificationCode] = useState<string>('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [isMockMode, setIsMockMode] = useState(true); // 인증번호 모킹/실제 API 토글
+    const [isMockMode, setIsMockMode] = useState(false); // 인증번호 모킹/실제 API 토글
 
     // 스크롤뷰 참조
     const scrollViewRef = React.useRef<ScrollView>(null);
@@ -154,11 +154,18 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const agreeMarketing = watch('agreeMarketing');
     const allAgree = agreeTerms && agreePrivacy && agreeMicrophone && agreeLocation;
 
-    const BACKEND_BASE_URL = 'http://192.168.123.103:3000'; // 실제 PC의 로컬 IP로 적용
+    const BACKEND_BASE_URL = 'http://192.168.162.52:3000'; // 실제 PC의 로컬 IP로 적용
 
     // firebaseConfirmation 상태 제거
 
     const onSendCode = async () => {
+        console.log('🔥 [DEBUG] onSendCode 함수 호출됨!');
+        console.log('==============================');
+        console.log('[SMS] 인증번호 발송 시작');
+        console.log(`  📱 휴대폰 번호: ${watch('phone')}`);
+        console.log(`  🔧 모드: ${isMockMode ? 'Mock (데모)' : '실제 API'}`);
+        console.log('==============================');
+
         setCertSent(true);
         setTimer(180);
         setCertVerified(false);
@@ -166,51 +173,89 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         if (isMockMode) {
             const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
             setMockVerificationCode(mockCode);
-            console.log('📱 모킹 인증번호 발송:', mockCode);
+            console.log('✅ [SMS] Mock 인증번호 발송 성공');
+            console.log(`  🔢 인증번호: ${mockCode}`);
             console.log('💡 데모 환경: 인증번호를 입력하면 자동으로 다음 단계로 넘어갑니다!');
         } else {
             // 실제 API 호출 (Twilio)
             try {
+                console.log('🌐 [SMS] 실제 API 호출 시작');
+
                 // E.164 형식으로 변환
                 const e164Phone = toE164Format(watch('phone'));
                 console.log('📱 E.164 형식 변환:', watch('phone'), '→', e164Phone);
 
                 if (!e164Phone) {
+                    console.log('❌ [SMS] 유효하지 않은 휴대폰 번호');
                     alert('유효하지 않은 휴대폰 번호입니다.');
                     return;
                 }
+
+                console.log('🌐 [SMS] API 요청 시작');
+                console.log(`  📡 URL: ${BACKEND_BASE_URL}/api/auth/phone/send`);
+                console.log(`  📱 전화번호: ${e164Phone}`);
+                console.log(`  📦 요청 데이터:`, { phone: e164Phone });
 
                 const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/send`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ phone: e164Phone })
                 });
+
+                console.log('📡 [SMS] 응답 수신');
+                console.log(`  📊 상태 코드: ${response.status}`);
+                console.log(`  📋 응답 헤더:`, response.headers);
+
                 const data = await response.json();
+                console.log(`  📄 응답 데이터:`, data);
+
                 if (!response.ok) {
+                    console.log('❌ [SMS] 인증번호 발송 실패');
+                    console.log(`  📊 상태 코드: ${response.status}`);
+                    console.log(`  📝 오류 메시지: ${data.error || '인증번호 발송 실패'}`);
                     alert(data.error || '인증번호 발송 실패');
+                } else {
+                    console.log('✅ [SMS] 인증번호 발송 성공');
+                    console.log('  📱 실제 SMS 발송 완료');
                 }
             } catch (err) {
+                console.log('❌ [SMS] 네트워크 오류');
+                console.log('  📝 오류 내용:', err);
                 alert('네트워크 오류: 인증번호 발송 실패');
             }
         }
+
+        console.log('🏁 [SMS] 인증번호 발송 프로세스 종료');
     };
 
     const onVerifyCode = async () => {
         const code = watch('code');
+
+        console.log('==============================');
+        console.log('[VERIFY] 인증번호 검증 시작');
+        console.log(`  📱 휴대폰 번호: ${watch('phone')}`);
+        console.log(`  🔢 입력한 인증번호: ${code}`);
+        console.log(`  🔧 모드: ${isMockMode ? 'Mock (데모)' : '실제 API'}`);
+        console.log('==============================');
+
         if (code && code.length === 6) {
             if (isMockMode) {
                 // Mock 모드에서 인증번호 검증
                 if (code === mockVerificationCode) {
                     setCertVerified(true);
-                    console.log('✅ Mock 인증번호 검증 성공!');
+                    console.log('✅ [VERIFY] Mock 인증번호 검증 성공!');
+                    console.log('  🎉 휴대폰 인증 완료');
                 } else {
-                    console.log('❌ 인증번호가 일치하지 않습니다.');
-                    console.log('📱 발송된 인증번호:', mockVerificationCode);
-                    console.log('🔢 입력한 인증번호:', code);
+                    console.log('❌ [VERIFY] 인증번호 불일치');
+                    console.log(`  📱 발송된 인증번호: ${mockVerificationCode}`);
+                    console.log(`  🔢 입력한 인증번호: ${code}`);
+                    alert('인증번호가 일치하지 않습니다.');
                 }
             } else {
                 // Twilio/실제 API에서는 백엔드에서 검증
                 try {
+                    console.log('🌐 [VERIFY] 실제 API 호출 시작');
+
                     const e164Phone = toE164Format(watch('phone'));
                     const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/verify`, {
                         method: 'POST',
@@ -220,20 +265,31 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                             code: code
                         })
                     });
+
                     const data = await response.json();
+
                     if (response.ok) {
                         setCertVerified(true);
-                        console.log('✅ 인증번호 검증 성공:', code);
+                        console.log('✅ [VERIFY] 실제 인증번호 검증 성공!');
+                        console.log('  🎉 휴대폰 인증 완료');
                     } else {
-                        console.log('❌ 인증번호 검증 실패:', data.error);
+                        console.log('❌ [VERIFY] 인증번호 검증 실패');
+                        console.log(`  📊 상태 코드: ${response.status}`);
+                        console.log(`  📝 오류 메시지: ${data.error || '인증번호가 일치하지 않습니다.'}`);
                         alert(data.error || '인증번호가 일치하지 않습니다.');
                     }
                 } catch (err) {
-                    console.log('❌ 인증번호 검증 오류:', err);
+                    console.log('❌ [VERIFY] 네트워크 오류');
+                    console.log('  📝 오류 내용:', err);
                     alert('네트워크 오류: 인증번호 검증 실패');
                 }
             }
+        } else {
+            console.log('❌ [VERIFY] 인증번호 형식 오류');
+            console.log(`  🔢 인증번호 길이: ${code?.length || 0} (필요: 6자리)`);
         }
+
+        console.log('🏁 [VERIFY] 인증번호 검증 프로세스 종료');
     };
 
     const showTermsModal = (termsKey: string) => {
@@ -333,13 +389,79 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     };
 
     const onSubmit = (data: FormData) => {
-        console.log('🚀 회원가입 제출 시작');
+        console.log('==============================');
+        console.log('[SIGNUP] 회원가입 제출 시작');
+        console.log(`  👤 이름: ${data.name}`);
+        console.log(`  📧 이메일: ${data.email}`);
+        console.log(`  📱 휴대폰: ${data.phone}`);
+        console.log(`  📅 생년월일: ${data.birth}`);
+        console.log(`  ✅ 약관 동의: ${data.agreeTerms ? '동의' : '미동의'}`);
+        console.log(`  🔒 개인정보: ${data.agreePrivacy ? '동의' : '미동의'}`);
+        console.log(`  🎤 마이크: ${data.agreeMicrophone ? '동의' : '미동의'}`);
+        console.log(`  📍 위치: ${data.agreeLocation ? '동의' : '미동의'}`);
+        console.log(`  📢 마케팅: ${data.agreeMarketing ? '동의' : '미동의'}`);
+        console.log('==============================');
+
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            console.log('✅ 회원가입 완료, 다음 단계로 이동');
-            onNext();
-        }, 1200);
+
+        // 실제 회원가입 API 호출
+        const performSignup = async () => {
+            try {
+                console.log('🌐 [SIGNUP] 서버 요청 시작');
+
+                // 휴대폰 번호에서 하이픈 제거
+                const cleanPhone = data.phone.replace(/[^0-9]/g, '');
+
+                const signupData = {
+                    email: data.email,
+                    password: data.password,
+                    name: data.name,
+                    phone: cleanPhone,
+                    birth: data.birth,
+                    code: data.code, // 인증번호 추가
+                    agreeTerms: data.agreeTerms,
+                    agreePrivacy: data.agreePrivacy,
+                    agreeMicrophone: data.agreeMicrophone,
+                    agreeLocation: data.agreeLocation,
+                    agreeMarketing: data.agreeMarketing
+                };
+
+                const response = await fetch(`${BACKEND_BASE_URL}/api/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(signupData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    console.log('❌ [SIGNUP] 회원가입 실패');
+                    console.log(`  📊 상태 코드: ${response.status}`);
+                    console.log(`  📝 오류 메시지: ${result.error || '회원가입 실패'}`);
+                    alert(result.error || '회원가입에 실패했습니다.');
+                } else {
+                    console.log('✅ [SIGNUP] 회원가입 성공');
+                    console.log(`  👤 사용자 ID: ${result.user?.userId || 'N/A'}`);
+                    console.log(`  📧 사용자 이메일: ${result.user?.email || 'N/A'}`);
+                    console.log(`  📱 휴대폰 인증: ${result.user?.phoneVerified ? '완료' : '미완료'}`);
+                    console.log(`  📧 이메일 인증: ${result.user?.emailVerified ? '완료' : '미완료'}`);
+                    console.log('🎉 [SIGNUP] 회원가입 프로세스 완료');
+
+                    // 성공 시 다음 단계로 이동
+                    onNext();
+                }
+            } catch (error) {
+                console.log('❌ [SIGNUP] 네트워크 오류');
+                console.log('  📝 오류 내용:', error);
+                alert('서버와 연결할 수 없습니다. 나중에 다시 시도해주세요.');
+            } finally {
+                setLoading(false);
+                console.log('🏁 [SIGNUP] 회원가입 프로세스 종료');
+            }
+        };
+
+        // 실제 API 호출 실행
+        performSignup();
     };
 
     const isStep2Valid = () => {
@@ -994,7 +1116,10 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                     // 그라데이션 효과를 위한 준비
                                                 }}
                                                 activeOpacity={0.8}
-                                                onPress={onSendCode}
+                                                onPress={() => {
+                                                    console.log('👆 [DEBUG] 인증요청 버튼 탭됨!');
+                                                    onSendCode();
+                                                }}
                                             >
                                                 <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>{certSent ? '재요청' : '인증요청'}</Text>
                                             </TouchableOpacity>
@@ -1056,7 +1181,10 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                     }}
                                                     disabled={!watch('code') || watch('code').length !== 6}
                                                     activeOpacity={0.8}
-                                                    onPress={() => onVerifyCode()}
+                                                    onPress={() => {
+                                                        console.log('👆 [DEBUG] 인증확인 버튼 탭됨!');
+                                                        onVerifyCode();
+                                                    }}
                                                 >
                                                     <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
                                                         {certVerified ? '✓ 인증완료' : '인증확인'}

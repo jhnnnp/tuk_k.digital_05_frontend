@@ -168,7 +168,10 @@ export default function AppNavigator() {
                 return (
                     <Animated.View style={[{ flex: 1 }, slideAnimatedStyle]}>
                         <LoginScreen
-                            onLoginSuccess={() => setActiveTab('home')}
+                            onLoginSuccess={() => {
+                                console.log('🎉 [NAVIGATION] 로그인 성공 - Settings 화면으로 이동');
+                                setActiveTab('settings');
+                            }}
                             onSignup={() => {
                                 animateScreenTransition('out', () => setShowSignup(true));
                             }}

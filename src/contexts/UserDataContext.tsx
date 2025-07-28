@@ -1,0 +1,250 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { userDataService, UserSettings } from '../services/UserDataService';
+import {
+    setUserId,
+    setUserSettings,
+    setAppState,
+    setPreferences,
+    setLastSync,
+    setLoaded,
+    clearUserData,
+    restoreUserState
+} from '../store/userSlice';
+import { RootState } from '../store';
+
+interface UserDataContextType {
+    currentUserId: string | null;
+    userSettings: UserSettings | null;
+    isLoaded: boolean;
+    loginUser: (userId: string) => Promise<void>;
+    logoutUser: () => Promise<void>;
+    switchUser: (newUserId: string) => Promise<void>;
+    updateUserSettings: (settings: Partial<UserSettings>) => Promise<void>;
+    syncUserData: () => Promise<void>;
+    backupUserData: () => Promise<any>;
+    restoreUserData: () => Promise<void>;
+    performDataClear: () => Promise<void>;
+}
+
+const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
+
+interface UserDataProviderProps {
+    children: ReactNode;
+}
+
+export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) => {
+    const dispatch = useDispatch();
+    const { userId, settings, isLoaded } = useSelector((state: RootState) => state.user);
+    const [isInitializing, setIsInitializing] = useState(true);
+
+    // 앱 초기화 시 사용자 데이터 복원
+    useEffect(() => {
+        const initializeUserData = async () => {
+            try {
+                const currentUserId = userDataService.getCurrentUserId();
+                if (currentUserId) {
+                    await loadUserData(currentUserId);
+                }
+            } catch (error) {
+                console.error('사용자 데이터 초기화 실패:', error);
+            } finally {
+                setIsInitializing(false);
+            }
+        };
+
+        initializeUserData();
+    }, []);
+
+    // 사용자 데이터 로드
+    const loadUserData = async (userId: string) => {
+        try {
+            const [settings, appState, platformData] = await Promise.all([
+                userDataService.getUserSettings(userId),
+                userDataService.getUserAppState(userId),
+                userDataService.getUserDataPlatformSpecific(userId)
+            ]);
+
+            // Redux store에 사용자 데이터 복원
+            dispatch(restoreUserState({
+                userId,
+                settings: settings || null,
+                appState: appState || null,
+                preferences: platformData || null,
+                lastSync: new Date().toISOString(),
+                isLoaded: true
+            }));
+
+            console.log(`사용자 ${userId} 데이터 로드 완료`);
+        } catch (error) {
+            console.error('사용자 데이터 로드 실패:', error);
+        }
+    };
+
+    // 사용자 로그인
+    const loginUser = async (userId: string) => {
+        try {
+            await userDataService.loginUser(userId);
+            await loadUserData(userId);
+            dispatch(setUserId(userId));
+            console.log(`사용자 ${userId} 로그인 완료`);
+        } catch (error) {
+            console.error('사용자 로그인 실패:', error);
+            throw error;
+        }
+    };
+
+    // 사용자 로그아웃
+    const logoutUser = async () => {
+        try {
+            if (userId) {
+                // 현재 상태 저장
+                const currentState = {
+                    timestamp: new Date().toISOString(),
+                    settings,
+                    // 추가 앱 상태들
+                };
+                await userDataService.saveUserAppState(userId, currentState);
+            }
+
+            await userDataService.logoutUser();
+            dispatch(clearUserData());
+            console.log('사용자 로그아웃 완료');
+        } catch (error) {
+            console.error('사용자 로그아웃 실패:', error);
+        }
+    };
+
+    // 사용자 전환
+    const switchUser = async (newUserId: string) => {
+        try {
+            await userDataService.switchUser(newUserId);
+            await loadUserData(newUserId);
+            dispatch(setUserId(newUserId));
+            console.log(`사용자 전환 완료: ${newUserId}`);
+        } catch (error) {
+            console.error('사용자 전환 실패:', error);
+            throw error;
+        }
+    };
+
+    // 사용자 설정 업데이트
+    const updateUserSettings = async (newSettings: Partial<UserSettings>) => {
+        try {
+            if (!userId) {
+                throw new Error('사용자가 로그인되지 않았습니다.');
+            }
+
+            const updatedSettings = settings ? { ...settings, ...newSettings } : newSettings as UserSettings;
+
+            // 로컬 저장
+            await userDataService.saveUserSettings(userId, updatedSettings);
+
+            // Redux store 업데이트
+            dispatch(setUserSettings(updatedSettings));
+
+            console.log('사용자 설정 업데이트 완료');
+        } catch (error) {
+            console.error('사용자 설정 업데이트 실패:', error);
+            throw error;
+        }
+    };
+
+    // 사용자 데이터 동기화
+    const syncUserData = async () => {
+        try {
+            if (!userId) {
+                throw new Error('사용자가 로그인되지 않았습니다.');
+            }
+
+            await userDataService.syncUserData(userId);
+            dispatch(setLastSync(new Date().toISOString()));
+            console.log('사용자 데이터 동기화 완료');
+        } catch (error) {
+            console.error('사용자 데이터 동기화 실패:', error);
+            throw error;
+        }
+    };
+
+    // 사용자 데이터 백업
+    const backupUserData = async () => {
+        try {
+            if (!userId) {
+                throw new Error('사용자가 로그인되지 않았습니다.');
+            }
+
+            const backupData = await userDataService.backupUserData(userId);
+            console.log('사용자 데이터 백업 완료');
+            return backupData;
+        } catch (error) {
+            console.error('사용자 데이터 백업 실패:', error);
+            throw error;
+        }
+    };
+
+    // 사용자 데이터 복원
+    const restoreUserData = async () => {
+        try {
+            if (!userId) {
+                throw new Error('사용자가 로그인되지 않았습니다.');
+            }
+
+            await userDataService.restoreUserData(userId);
+            await loadUserData(userId);
+            console.log('사용자 데이터 복원 완료');
+        } catch (error) {
+            console.error('사용자 데이터 복원 실패:', error);
+            throw error;
+        }
+    };
+
+    // 사용자 데이터 삭제
+    const performDataClear = async () => {
+        try {
+            if (!userId) {
+                throw new Error('사용자가 로그인되지 않았습니다.');
+            }
+
+            await userDataService.clearUserData(userId);
+            dispatch(clearUserData());
+            console.log('사용자 데이터 삭제 완료');
+        } catch (error) {
+            console.error('사용자 데이터 삭제 실패:', error);
+            throw error;
+        }
+    };
+
+    const contextValue: UserDataContextType = {
+        currentUserId: userId,
+        userSettings: settings,
+        isLoaded,
+        loginUser,
+        logoutUser,
+        switchUser,
+        updateUserSettings,
+        syncUserData,
+        backupUserData,
+        restoreUserData,
+        performDataClear,
+    };
+
+    if (isInitializing) {
+        // 로딩 상태 표시
+        return null;
+    }
+
+    return (
+        <UserDataContext.Provider value={contextValue}>
+            {children}
+        </UserDataContext.Provider>
+    );
+};
+
+// Custom hook for using UserDataContext
+export const useUserData = () => {
+    const context = useContext(UserDataContext);
+    if (context === undefined) {
+        throw new Error('useUserData must be used within a UserDataProvider');
+    }
+    return context;
+}; 
