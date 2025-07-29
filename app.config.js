@@ -104,9 +104,12 @@ export default ({ config }) => ({
         eas: {
             projectId: 'your-project-id'
         },
-        apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://api.tibo.com',
-        websocketUrl: process.env.EXPO_PUBLIC_WEBSOCKET_URL || 'wss://ws.tibo.com',
-        turnServer: process.env.EXPO_PUBLIC_TURN_SERVER || 'stun:stun.tibo.com:3478'
+        apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
+        websocketUrl: process.env.EXPO_PUBLIC_WEBSOCKET_URL || 'ws://localhost:3000',
+        turnServer: process.env.EXPO_PUBLIC_TURN_SERVER || 'stun:localhost:3478',
+        googleWebClientId: '706502232476-22nfajuo4f4luvs0n8ofp9h1svjd1s9m.apps.googleusercontent.com',
+        googleIosClientId: '706502232476-22nfajuo4f4luvs0n8ofp9h1svjd1s9m.apps.googleusercontent.com',
+        googleAndroidClientId: '706502232476-22nfajuo4f4luvs0n8ofp9h1svjd1s9m.apps.googleusercontent.com'
     },
     experiments: {
         tsconfigPaths: true

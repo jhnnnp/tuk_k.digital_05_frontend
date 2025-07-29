@@ -30,6 +30,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../styles/ThemeProvider';
 import { isValidEmail } from '../utils/validation';
 import { storage } from '../utils/storage'; // AsyncStorage wrapper
+import { signInWithGoogle } from '../services/GoogleAuthService';
+import GoogleLogo from '../components/atoms/GoogleLogo';
 
 interface LoginScreenProps {
     onLoginSuccess: () => void;
@@ -162,6 +164,38 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
         setAutoLogin(prev => !prev);
     }, [checkboxScale]);
 
+    // 구글 로그인 핸들러
+    const handleGoogleLogin = useCallback(async () => {
+        console.log('==============================');
+        console.log('[GOOGLE LOGIN] 구글 로그인 시도 시작');
+        console.log('==============================');
+
+        setLoading(true);
+        try {
+            const result = await signInWithGoogle();
+
+            if (result.success) {
+                console.log('✅ [GOOGLE LOGIN] 구글 로그인 성공');
+                console.log(`  📝 메시지: ${result.message}`);
+
+                // 구글 로그인 성공 시 바로 로그인 완료 처리
+                console.log('✅ [GOOGLE LOGIN] 로그인 완료 처리');
+                onLoginSuccess();
+            } else {
+                console.log('❌ [GOOGLE LOGIN] 구글 로그인 실패');
+                console.log(`  📝 오류: ${result.error}`);
+                setErrors([result.error || '구글 로그인에 실패했습니다.']);
+            }
+        } catch (error) {
+            console.log('❌ [GOOGLE LOGIN] 네트워크 오류');
+            console.log('  📝 오류 내용:', error);
+            setErrors(['구글 로그인 중 오류가 발생했습니다.']);
+        } finally {
+            setLoading(false);
+            console.log('🏁 [GOOGLE LOGIN] 구글 로그인 프로세스 종료');
+        }
+    }, [onLoginSuccess]);
+
     // ────────────────────────────────────────────────────────────────────────────────
     // JSX
     // ────────────────────────────────────────────────────────────────────────────────
@@ -284,6 +318,33 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
                             <Text style={[styles.loginButtonText, { color: theme.onPrimary }]}>로그인하기</Text>
                         )}
                     </TouchableOpacity>
+
+                    {/* 구분선 */}
+                    <View style={styles.orDivider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={[styles.orText, { color: theme.textSecondary }]}>또는</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    {/* 구글 로그인 버튼 */}
+                    <TouchableOpacity
+                        style={[
+                            styles.googleLoginButton,
+                            { borderColor: '#E5E7EB' }
+                        ]}
+                        disabled={loading}
+                        activeOpacity={0.8}
+                        onPress={handleGoogleLogin}
+                    >
+                        <View style={styles.googleButtonContent}>
+                            <View style={styles.googleIconContainer}>
+                                <GoogleLogo size={18} />
+                            </View>
+                            <Text style={[styles.googleLoginText, { color: theme.textPrimary }]}>
+                                Google 계정으로 로그인
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
                     {/* 부가 링크 */}
                     <View style={styles.linkRow}>
                         <TouchableOpacity onPress={() => Alert.alert('아이디 찾기 준비중')}><Text style={styles.linkText}>아이디 찾기</Text></TouchableOpacity>
@@ -304,10 +365,10 @@ export default function LoginScreen({ onLoginSuccess, onSignup }: LoginScreenPro
 const styles = StyleSheet.create({
     safe: { flex: 1 },
     flex: { flex: 1 },
-    innerContainer: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', paddingHorizontal: 28, paddingTop: 60 },
+    innerContainer: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', paddingHorizontal: 28, paddingTop: 0 },
     logo: { width: 1188, height: 315, marginTop: -20, marginBottom: 8, resizeMode: 'contain' },
     title: { fontFamily: 'GoogleSans-Bold', fontSize: 22, textAlign: 'center', marginBottom: 8 },
-    subtitle: { fontFamily: 'GoogleSans-Medium', fontSize: 16, textAlign: 'center', marginBottom: 32, color: '#374151' },
+    subtitle: { fontFamily: 'GoogleSans-Medium', fontSize: 16, textAlign: 'center', marginBottom: 20, color: '#374151' },
     inputGroup: { width: '100%', marginBottom: 0 },
     input: {
         flex: 1,
@@ -327,7 +388,7 @@ const styles = StyleSheet.create({
     switchLabel: { color: '#333', fontSize: 15, marginLeft: 8 },
     errorBox: { width: '100%', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 12 },
     errorText: { fontFamily: 'GoogleSans-Medium', fontSize: 13 },
-    loginButton: { width: '100%', height: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 18 },
+    loginButton: { width: '100%', height: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginTop: 8, marginBottom: 4 },
     loginButtonText: { fontFamily: 'GoogleSans-Bold', fontSize: 17 },
     linkRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 2 },
     linkText: { color: '#888', fontSize: 13, paddingHorizontal: 6 },
@@ -378,5 +439,53 @@ const styles = StyleSheet.create({
         width: 44,
         height: 44,
         borderRadius: 8,
+    },
+    // 구글 로그인 관련 스타일
+    orDivider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+        marginVertical: 4,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#E5E7EB',
+    },
+    orText: {
+        fontSize: 12,
+        marginHorizontal: 16,
+        fontFamily: 'GoogleSans-Medium',
+    },
+    googleLoginButton: {
+        width: '100%',
+        height: 48,
+        borderRadius: 8,
+        borderWidth: 1,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    googleButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    googleIconContainer: {
+        width: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    googleLoginText: {
+        fontSize: 16,
+        fontFamily: 'GoogleSans-Medium',
     },
 });

@@ -200,9 +200,15 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                 break;
             case 'zoomIn':
                 handleZoomIn();
+                // 줌인 버튼을 눌렀다가 바로 꺼지는 효과
+                setSelectedAction(actionId);
+                setTimeout(() => setSelectedAction(null), 150);
                 break;
             case 'zoomOut':
                 handleZoomOut();
+                // 줌아웃 버튼을 눌렀다가 바로 꺼지는 효과
+                setSelectedAction(actionId);
+                setTimeout(() => setSelectedAction(null), 150);
                 break;
             case 'capture':
                 handleCapture();
@@ -482,8 +488,8 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                                 let isActive = false;
                                 if (action.id === 'record') isActive = streamState && streamState.isRecording;
                                 else if (action.id === 'voice') isActive = streamState && streamState.isMicOn;
-                                else if (action.id === 'zoomIn') isActive = zoomScale.value > 1;
-                                else if (action.id === 'zoomOut') isActive = zoomScale.value > 1;
+                                else if (action.id === 'zoomIn') isActive = false; // 줌인 버튼은 불이 들어오지 않도록 수정
+                                else if (action.id === 'zoomOut') isActive = false; // 줌아웃 버튼은 불이 들어오지 않도록 수정
                                 else isActive = selectedAction === action.id;
                                 const isRecordButton = action.id === 'record';
                                 return (

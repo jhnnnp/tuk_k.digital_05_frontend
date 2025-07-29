@@ -11,7 +11,7 @@ import { useTheme } from '../styles/ThemeProvider';
 import HomeScreen from '../pages/HomeScreen';
 import LiveScreen from '../pages/LiveScreen';
 import RecordingsScreen from '../pages/RecordingsScreen';
-import SettingsScreen from '../pages/SettingsScreen';
+import SettingsStackNavigator from './StackNavigator';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../pages/LoginScreen';
@@ -163,7 +163,7 @@ export default function AppNavigator() {
             case 'recordings':
                 return <RecordingsScreen />;
             case 'settings':
-                return <SettingsScreen onLogout={handleLogout} />;
+                return <SettingsStackNavigator onLogout={handleLogout} />;
             case 'login':
                 return (
                     <Animated.View style={[{ flex: 1 }, slideAnimatedStyle]}>

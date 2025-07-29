@@ -6,8 +6,8 @@ import { useTheme } from '../styles/ThemeProvider';
 import AnimatedTabButton from '../components/atoms/AnimatedTabButton';
 import VideoPlayer from '../components/atoms/VideoPlayer';
 import DownloadProgressModal from '../components/atoms/DownloadProgressModal';
-import GlassmorphismAlert from '../components/atoms/GlassmorphismAlert';
-import GlassmorphismActionSheet from '../components/atoms/GlassmorphismActionSheet';
+import DownloadSuccessAlert from '../components/atoms/DownloadSuccessAlert';
+import RecordingActionSheet from '../components/atoms/RecordingActionSheet';
 import CalendarPicker from '../components/atoms/CalendarPicker';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,18 +50,16 @@ export default function RecordingsScreen() {
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState<Recording | null>(null);
-    const [alertVisible, setAlertVisible] = useState(false);
-    const [alertConfig, setAlertConfig] = useState({
+    const [downloadSuccessVisible, setDownloadSuccessVisible] = useState(false);
+    const [downloadSuccessConfig, setDownloadSuccessConfig] = useState({
         title: '',
         message: '',
-        type: 'info' as 'success' | 'info' | 'warning' | 'error',
+        fileName: '',
+        fileSize: '',
     });
     const [actionSheetVisible, setActionSheetVisible] = useState(false);
-    const [actionSheetConfig, setActionSheetConfig] = useState({
-        title: '',
-        description: '',
-        actions: [] as any[],
-    });
+    const [selectedRecording, setSelectedRecording] = useState<any>(null);
+    const [recordingActions, setRecordingActions] = useState<any[]>([]);
 
     const recordings: Recording[] = [
         {
@@ -394,12 +392,13 @@ export default function RecordingsScreen() {
                                     setDownloadProgress(0);
                                     setDownloadingFile(null);
 
-                                    setAlertConfig({
-                                        title: '다운로드 완료',
-                                        message: `${recording.description}\n\n파일이 갤러리에 저장되었습니다.`,
-                                        type: 'success',
+                                    setDownloadSuccessConfig({
+                                        title: '완료',
+                                        message: '저장되었습니다.',
+                                        fileName: recording.description,
+                                        fileSize: recording.size,
                                     });
-                                    setAlertVisible(true);
+                                    setDownloadSuccessVisible(true);
                                 }, 1000);
 
                             } catch (error) {
@@ -407,12 +406,13 @@ export default function RecordingsScreen() {
                                 setIsDownloading(false);
                                 setDownloadProgress(0);
                                 setDownloadingFile(null);
-                                setAlertConfig({
+                                setDownloadSuccessConfig({
                                     title: '다운로드 실패',
                                     message: '파일 다운로드에 실패했습니다.',
-                                    type: 'error',
+                                    fileName: recording.description,
+                                    fileSize: recording.size,
                                 });
-                                setAlertVisible(true);
+                                setDownloadSuccessVisible(true);
                             }
                         }
                     }
@@ -427,65 +427,28 @@ export default function RecordingsScreen() {
     // 녹화 공유
     const handleShareRecording = async (recording: Recording) => {
         try {
-            Alert.alert(
-                '공유',
-                `${recording.description}\n\n어떤 방법으로 공유하시겠습니까?`,
-                [
-                    {
-                        text: '시스템 공유',
-                        onPress: async () => {
-                            try {
-                                // 파일 다운로드 후 공유
-                                const downloadResumable = FileSystem.createDownloadResumable(
-                                    recording.videoUrl,
-                                    FileSystem.cacheDirectory + `share_${recording.id}.mp4`
-                                );
-
-                                const { uri } = await downloadResumable.downloadAsync();
-
-                                // 시스템 공유 기능 사용
-                                if (await Sharing.isAvailableAsync()) {
-                                    await Sharing.shareAsync(uri, {
-                                        mimeType: 'video/mp4',
-                                        dialogTitle: recording.description
-                                    });
-                                } else {
-                                    setAlertConfig({
-                                        title: '공유 불가',
-                                        message: '이 기기에서는 공유 기능을 사용할 수 없습니다.',
-                                        type: 'warning',
-                                    });
-                                    setAlertVisible(true);
-                                }
-                            } catch (error) {
-                                console.error('공유 오류:', error);
-                                setAlertConfig({
-                                    title: '공유 실패',
-                                    message: '파일 공유에 실패했습니다.',
-                                    type: 'error',
-                                });
-                                setAlertVisible(true);
-                            }
-                        }
-                    },
-                    {
-                        text: '링크 공유',
-                        onPress: () => {
-                            console.log('링크 공유:', recording.videoUrl);
-                            setAlertConfig({
-                                title: '링크 공유',
-                                message: '비디오 링크가 복사되었습니다.',
-                                type: 'success',
-                            });
-                            setAlertVisible(true);
-                        }
-                    },
-                    { text: '취소', style: 'cancel' }
-                ]
+            // 백그라운드에서 파일 다운로드 (진행률 표시 없음)
+            const downloadResumable = FileSystem.createDownloadResumable(
+                recording.videoUrl,
+                FileSystem.documentDirectory + `share_${recording.id}.mp4`
             );
+
+            const { uri } = await downloadResumable.downloadAsync();
+
+            // 다운로드 완료 후 바로 시스템 공유
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(uri, {
+                    mimeType: 'video/mp4',
+                    dialogTitle: recording.description,
+                    UTI: 'public.movie'
+                });
+            } else {
+                Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
+            }
+
         } catch (error) {
             console.error('공유 오류:', error);
-            Alert.alert('오류', '공유 기능을 사용할 수 없습니다.');
+            Alert.alert('공유 실패', '파일 다운로드 중 오류가 발생했습니다.');
         }
     };
 
@@ -506,12 +469,7 @@ export default function RecordingsScreen() {
                         Alert.alert('삭제 중...', '녹화 파일을 삭제하고 있습니다.');
 
                         setTimeout(() => {
-                            setAlertConfig({
-                                title: '삭제 완료',
-                                message: '녹화가 삭제되었습니다.',
-                                type: 'success',
-                            });
-                            setAlertVisible(true);
+                            Alert.alert('삭제 완료', '녹화가 삭제되었습니다.');
                             // 실제로는 recordings 배열에서 해당 항목 제거
                         }, 2000);
                     }
@@ -522,40 +480,52 @@ export default function RecordingsScreen() {
 
     // 녹화 메뉴
     const handleRecordingMenu = (recording: Recording) => {
-        setActionSheetConfig({
-            title: '녹화 옵션',
+        setSelectedRecording({
+            title: `${recording.type} 이벤트`,
             description: recording.description,
-            actions: [
-                {
-                    id: 'play',
-                    title: '재생',
-                    icon: 'play',
-                    type: 'default',
-                    onPress: () => handlePlayRecording(recording),
-                },
-                {
-                    id: 'download',
-                    title: '다운로드',
-                    icon: 'download',
-                    type: 'default',
-                    onPress: () => handleDownloadRecording(recording),
-                },
-                {
-                    id: 'share',
-                    title: '공유',
-                    icon: 'share',
-                    type: 'default',
-                    onPress: () => handleShareRecording(recording),
-                },
-                {
-                    id: 'delete',
-                    title: '삭제',
-                    icon: 'trash',
-                    type: 'destructive',
-                    onPress: () => handleDeleteRecording(recording),
-                },
-            ],
+            duration: recording.duration,
+            size: recording.size,
+            timestamp: recording.timestamp,
         });
+        setRecordingActions([
+            {
+                id: 'play',
+                title: '재생',
+                subtitle: '녹화 영상을 재생합니다',
+                icon: 'play-circle',
+                color: '#3B82F6',
+                type: 'default',
+                onPress: () => handlePlayRecording(recording),
+            },
+            {
+                id: 'download',
+                title: '다운로드',
+                subtitle: '기기에 저장합니다',
+                icon: 'download',
+                color: '#10B981',
+                type: 'default',
+                onPress: () => handleDownloadRecording(recording),
+            },
+            {
+                id: 'share',
+                title: '공유',
+                subtitle: '다른 앱으로 공유합니다',
+                icon: 'share-social',
+                color: '#8B5CF6',
+                type: 'default',
+                onPress: () => handleShareRecording(recording),
+            },
+
+            {
+                id: 'delete',
+                title: '삭제',
+                subtitle: '녹화를 영구 삭제합니다',
+                icon: 'trash',
+                color: '#EF4444',
+                type: 'destructive',
+                onPress: () => handleDeleteRecording(recording),
+            },
+        ]);
         setActionSheetVisible(true);
     };
 
@@ -1193,22 +1163,22 @@ export default function RecordingsScreen() {
                 onCancel={handleCancelDownload}
             />
 
-            {/* Glassmorphism Alert */}
-            <GlassmorphismAlert
-                isVisible={alertVisible}
-                title={alertConfig.title}
-                message={alertConfig.message}
-                type={alertConfig.type}
-                onConfirm={() => setAlertVisible(false)}
+            {/* Download Success Alert */}
+            <DownloadSuccessAlert
+                isVisible={downloadSuccessVisible}
+                title={downloadSuccessConfig.title}
+                message={downloadSuccessConfig.message}
+                fileName={downloadSuccessConfig.fileName}
+                fileSize={downloadSuccessConfig.fileSize}
+                onConfirm={() => setDownloadSuccessVisible(false)}
             />
 
-            {/* Glassmorphism Action Sheet */}
-            <GlassmorphismActionSheet
-                isVisible={actionSheetVisible}
-                title={actionSheetConfig.title}
-                description={actionSheetConfig.description}
-                actions={actionSheetConfig.actions}
-                onCancel={() => setActionSheetVisible(false)}
+            {/* Recording Action Sheet */}
+            <RecordingActionSheet
+                visible={actionSheetVisible}
+                onClose={() => setActionSheetVisible(false)}
+                recording={selectedRecording}
+                actions={recordingActions}
             />
         </SafeAreaView >
     );

@@ -15,7 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AnimatedToggleSwitch from '../components/atoms/AnimatedToggleSwitch';
 // import { CommonActions, useNavigation } from '@react-navigation/native';
 
-export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
+export default function SettingsScreen({ onLogout, navigation }: { onLogout: () => void; navigation: any }) {
     const { theme } = useTheme();
     // navigation, useNavigation 제거
 
@@ -177,22 +177,8 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
 
     // 설정 업데이트 함수
     const updateSetting = (key: string, value: any) => {
-        try {
-            console.log(`🔧 [SETTINGS] 설정 업데이트 시작: ${key} = ${value}`);
-            console.log(`🔧 [SETTINGS] 현재 설정 상태:`, settings);
-
-            setSettings(prev => {
-                console.log(`🔧 [SETTINGS] 이전 설정:`, prev);
-                const newSettings = { ...prev, [key]: value };
-                console.log(`🔧 [SETTINGS] 새로운 설정:`, newSettings);
-                return newSettings;
-            });
-
-            console.log(`✅ [SETTINGS] 설정 업데이트 완료: ${key} = ${value}`);
-        } catch (error) {
-            console.error(`❌ [SETTINGS] 설정 업데이트 오류: ${key}`, error);
-            console.error(`❌ [SETTINGS] 오류 스택:`, error.stack);
-        }
+        console.log(`🔧 [SETTINGS] 설정 업데이트: ${key} = ${value}`);
+        setSettings(prev => ({ ...prev, [key]: value }));
     };
 
     // 설정 그룹 컴포넌트
@@ -332,6 +318,7 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
 
     const handleNetworkSettings = () => {
         console.log('네트워크 설정 화면으로 이동');
+        navigation.navigate('NetworkSettings');
     };
 
     const handleCustomerSupport = () => {
@@ -458,12 +445,13 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                             <AnimatedToggleSwitch
                                 value={settings.notifications}
                                 onValueChange={(value) => {
-                                    try {
-                                        console.log(`🔔 [NOTIFICATIONS] 토글 변경: ${value}`);
-                                        updateSetting('notifications', value);
-                                    } catch (error) {
-                                        console.error('❌ [NOTIFICATIONS] 토글 오류:', error);
-                                    }
+                                    console.log(`🔔 [NOTIFICATIONS] 토글 변경: ${value}`);
+                                    setSettings(prev => {
+                                        console.log(`🔔 [NOTIFICATIONS] 이전 설정:`, prev);
+                                        const newSettings = { ...prev, notifications: value };
+                                        console.log(`🔔 [NOTIFICATIONS] 새로운 설정:`, newSettings);
+                                        return newSettings;
+                                    });
                                 }}
                                 activeColor={theme.primary}
                                 inactiveColor={theme.outline}
@@ -483,12 +471,13 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                             <AnimatedToggleSwitch
                                 value={settings.motionAlerts}
                                 onValueChange={(value) => {
-                                    try {
-                                        console.log(`🎥 [MOTION ALERTS] 토글 변경: ${value}`);
-                                        updateSetting('motionAlerts', value);
-                                    } catch (error) {
-                                        console.error('❌ [MOTION ALERTS] 토글 오류:', error);
-                                    }
+                                    console.log(`🎥 [MOTION ALERTS] 토글 변경: ${value}`);
+                                    setSettings(prev => {
+                                        console.log(`🎥 [MOTION ALERTS] 이전 설정:`, prev);
+                                        const newSettings = { ...prev, motionAlerts: value };
+                                        console.log(`🎥 [MOTION ALERTS] 새로운 설정:`, newSettings);
+                                        return newSettings;
+                                    });
                                 }}
                                 activeColor={theme.primary}
                                 inactiveColor={theme.outline}
@@ -509,12 +498,13 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                             <AnimatedToggleSwitch
                                 value={settings.faceRecognition}
                                 onValueChange={(value) => {
-                                    try {
-                                        console.log(`👤 [FACE RECOGNITION] 토글 변경: ${value}`);
-                                        updateSetting('faceRecognition', value);
-                                    } catch (error) {
-                                        console.error('❌ [FACE RECOGNITION] 토글 오류:', error);
-                                    }
+                                    console.log(`👤 [FACE RECOGNITION] 토글 변경: ${value}`);
+                                    setSettings(prev => {
+                                        console.log(`👤 [FACE RECOGNITION] 이전 설정:`, prev);
+                                        const newSettings = { ...prev, faceRecognition: value };
+                                        console.log(`👤 [FACE RECOGNITION] 새로운 설정:`, newSettings);
+                                        return newSettings;
+                                    });
                                 }}
                                 activeColor={theme.primary}
                                 inactiveColor={theme.outline}
@@ -548,15 +538,13 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                             <AnimatedToggleSwitch
                                 value={settings.autoRecord}
                                 onValueChange={(value) => {
-                                    try {
-                                        console.log(`🎬 [AUTO RECORD] 토글 변경 시작: ${value}`);
-                                        console.log(`🎬 [AUTO RECORD] 현재 autoRecord 값:`, settings.autoRecord);
-                                        updateSetting('autoRecord', value);
-                                        console.log(`🎬 [AUTO RECORD] 토글 변경 완료: ${value}`);
-                                    } catch (error) {
-                                        console.error('❌ [AUTO RECORD] 토글 오류:', error);
-                                        console.error('❌ [AUTO RECORD] 오류 스택:', error.stack);
-                                    }
+                                    console.log(`🎬 [AUTO RECORD] 토글 변경: ${value}`);
+                                    setSettings(prev => {
+                                        console.log(`🎬 [AUTO RECORD] 이전 설정:`, prev);
+                                        const newSettings = { ...prev, autoRecord: value };
+                                        console.log(`🎬 [AUTO RECORD] 새로운 설정:`, newSettings);
+                                        return newSettings;
+                                    });
                                 }}
                                 activeColor={theme.primary}
                                 inactiveColor={theme.outline}
@@ -594,15 +582,13 @@ export default function SettingsScreen({ onLogout }: { onLogout: () => void }) {
                             <AnimatedToggleSwitch
                                 value={settings.cloudSync}
                                 onValueChange={(value) => {
-                                    try {
-                                        console.log(`☁️ [CLOUD SYNC] 토글 변경 시작: ${value}`);
-                                        console.log(`☁️ [CLOUD SYNC] 현재 cloudSync 값:`, settings.cloudSync);
-                                        updateSetting('cloudSync', value);
-                                        console.log(`☁️ [CLOUD SYNC] 토글 변경 완료: ${value}`);
-                                    } catch (error) {
-                                        console.error('❌ [CLOUD SYNC] 토글 오류:', error);
-                                        console.error('❌ [CLOUD SYNC] 오류 스택:', error.stack);
-                                    }
+                                    console.log(`☁️ [CLOUD SYNC] 토글 변경: ${value}`);
+                                    setSettings(prev => {
+                                        console.log(`☁️ [CLOUD SYNC] 이전 설정:`, prev);
+                                        const newSettings = { ...prev, cloudSync: value };
+                                        console.log(`☁️ [CLOUD SYNC] 새로운 설정:`, newSettings);
+                                        return newSettings;
+                                    });
                                 }}
                                 activeColor={theme.primary}
                                 inactiveColor={theme.outline}

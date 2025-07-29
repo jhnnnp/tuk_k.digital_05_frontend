@@ -36,7 +36,6 @@ const AnimatedToggleSwitch: React.FC<AnimatedToggleSwitchProps> = ({
     ...props
 }) => {
     const scaleAnim = useSharedValue(scaleAnimation ? (value ? 1 : 0.8) : 1);
-    const opacityAnim = useSharedValue(1);
 
     useEffect(() => {
         if (scaleAnimation) {
@@ -45,32 +44,20 @@ const AnimatedToggleSwitch: React.FC<AnimatedToggleSwitchProps> = ({
                 stiffness: 100,
             });
         }
-    }, [value, scaleAnimation]);
+    }, [value, scaleAnimation, scaleAnim]);
 
     const handleValueChange = (newValue: boolean) => {
-        try {
-            console.log(`🔄 [TOGGLE] 값 변경 시작: ${newValue}`);
+        console.log(`🔄 [TOGGLE] 값 변경: ${newValue}`);
 
-            if (hapticFeedback) {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }
-
-            // 부드러운 투명도 애니메이션
-            opacityAnim.value = withTiming(0.7, { duration: 100 }, () => {
-                console.log(`🔄 [TOGGLE] onValueChange 호출: ${newValue}`);
-                onValueChange(newValue);
-                opacityAnim.value = withTiming(1, { duration: 100 });
-                console.log(`✅ [TOGGLE] 값 변경 완료: ${newValue}`);
-            });
-        } catch (error) {
-            console.error('❌ [TOGGLE] 값 변경 오류:', error);
-            console.error('❌ [TOGGLE] 오류 스택:', error.stack);
+        if (hapticFeedback) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
+
+        onValueChange(newValue);
     };
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: scaleAnim.value }],
-        opacity: opacityAnim.value,
     }));
 
     return (

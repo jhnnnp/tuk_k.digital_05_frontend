@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, persistor } from './store';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NavigationContainer } from '@react-navigation/native';
 
 export default function App() {
     const appState = useRef(AppState.currentState);
@@ -42,7 +43,9 @@ export default function App() {
                 <SafeAreaProvider>
                     <ThemeProvider>
                         <UserDataProvider>
-                            <AppNavigator />
+                            <NavigationContainer>
+                                <AppNavigator />
+                            </NavigationContainer>
                         </UserDataProvider>
                     </ThemeProvider>
                 </SafeAreaProvider>

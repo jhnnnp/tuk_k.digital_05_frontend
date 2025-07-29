@@ -1,78 +1,119 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StatusBar, View, Text, TouchableOpacity, Switch, Alert } from 'react-native';
+import {
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    View,
+    Text,
+    TouchableOpacity,
+    Alert,
+    Switch,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../styles/ThemeProvider';
-import { connectionService, ConnectionStatus } from '../../services/ConnectionService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function NetworkSettingsScreen() {
+// NetInfo를 조건부로 임포트
+let NetInfo: any;
+try {
+    NetInfo = require('react-native-netinfo').default;
+} catch (e) {
+    console.warn('react-native-netinfo를 로드할 수 없습니다. Expo Go 환경에서는 모의 데이터를 사용합니다.');
+}
+
+interface NetworkInfo {
+    isConnected: boolean;
+    type: string;
+    isWifi: boolean;
+    isCellular: boolean;
+    ssid?: string;
+    strength?: number;
+}
+
+export default function NetworkSettingsScreen({ navigation }: { navigation: any }) {
     const { theme } = useTheme();
-    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(connectionService.getStatus());
-    const [autoConnect, setAutoConnect] = useState(true);
-    const [networkScanning, setNetworkScanning] = useState(false);
+    const [networkInfo, setNetworkInfo] = useState<NetworkInfo>({
+        isConnected: false,
+        type: 'unknown',
+        isWifi: false,
+        isCellular: false,
+    });
+    const [settings, setSettings] = useState({
+        autoConnect: true,
+        dataSaver: false,
+        vpnEnabled: false,
+    });
 
-    // 연결 상태 구독
     useEffect(() => {
-        const unsubscribe = connectionService.subscribe((status) => {
-            setConnectionStatus(status);
-        });
+        if (NetInfo) {
+            // NetInfo가 사용 가능한 경우 실제 네트워크 정보 사용
+            const getNetworkInfo = async () => {
+                try {
+                    const state = await NetInfo.fetch();
+                    setNetworkInfo({
+                        isConnected: state.isConnected || false,
+                        type: state.type || 'unknown',
+                        isWifi: state.type === 'wifi',
+                        isCellular: state.type === 'cellular',
+                        ssid: state.details?.ssid,
+                        strength: state.details?.strength,
+                    });
+                } catch (error) {
+                    console.log('❌ [NETWORK] 네트워크 정보 가져오기 실패:', error);
+                    // 실패 시 기본값 사용
+                    setNetworkInfo({
+                        isConnected: true,
+                        type: 'wifi',
+                        isWifi: true,
+                        isCellular: false,
+                        ssid: 'Home_WiFi_5G',
+                        strength: 85,
+                    });
+                }
+            };
 
-        return unsubscribe;
+            getNetworkInfo();
+
+            // 네트워크 상태 변화 감지
+            const unsubscribe = NetInfo.addEventListener(state => {
+                setNetworkInfo({
+                    isConnected: state.isConnected || false,
+                    type: state.type || 'unknown',
+                    isWifi: state.type === 'wifi',
+                    isCellular: state.type === 'cellular',
+                    ssid: state.details?.ssid,
+                    strength: state.details?.strength,
+                });
+            });
+
+            return () => unsubscribe();
+        } else {
+            // NetInfo가 사용 불가능한 경우 (Expo Go) 모의 데이터 사용
+            console.log('NetInfo를 사용할 수 없어 모의 네트워크 데이터를 사용합니다.');
+            setNetworkInfo({
+                isConnected: true,
+                type: 'wifi',
+                isWifi: true,
+                isCellular: false,
+                ssid: 'Home_WiFi_5G',
+                strength: 85,
+            });
+
+            // 3초마다 네트워크 상태 업데이트 (모의)
+            const interval = setInterval(() => {
+                setNetworkInfo(prev => ({
+                    ...prev,
+                    strength: Math.floor(Math.random() * 30) + 70, // 70-100% 사이 랜덤
+                }));
+            }, 3000);
+
+            return () => clearInterval(interval);
+        }
     }, []);
 
-    // 네트워크 스캔 시작
-    const handleNetworkScan = async () => {
-        setNetworkScanning(true);
-        try {
-            // 실제 구현에서는 네트워크 스캔 수행
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            Alert.alert('스캔 완료', '네트워크에서 TIBO 카메라를 찾았습니다.');
-        } catch (error) {
-            Alert.alert('스캔 실패', '네트워크 스캔 중 오류가 발생했습니다.');
-        } finally {
-            setNetworkScanning(false);
-        }
-    };
-
-    // 연결 테스트
-    const handleConnectionTest = async () => {
-        try {
-            const result = await connectionService.testConnection();
-            Alert.alert('연결 테스트 결과',
-                `Ping: ${result.ping}ms\n다운로드: ${result.downloadSpeed}\n업로드: ${result.uploadSpeed}`);
-        } catch (error) {
-            Alert.alert('테스트 실패', '연결 테스트 중 오류가 발생했습니다.');
-        }
-    };
-
-    // 연결 해제
-    const handleDisconnect = async () => {
-        Alert.alert(
-            '연결 해제',
-            '카메라와의 연결을 해제하시겠습니까?',
-            [
-                { text: '취소', style: 'cancel' },
-                {
-                    text: '해제',
-                    style: 'destructive',
-                    onPress: async () => {
-                        await connectionService.disconnect();
-                        Alert.alert('연결 해제됨', '카메라와의 연결이 해제되었습니다.');
-                    }
-                }
-            ]
-        );
-    };
-
-    const SettingsGroup = ({
-        title,
-        children,
-        style = {}
-    }: {
-        title?: string;
-        children: React.ReactNode;
-        style?: any;
-    }) => (
-        <View style={[{ marginBottom: theme.spacing.lg }, style]}>
+    // 설정 그룹 컴포넌트
+    const SettingsGroup = ({ title, children }: { title?: string; children: React.ReactNode }) => (
+        <View style={{ marginBottom: 24 }}>
             {title && (
                 <Text style={{
                     fontFamily: 'GoogleSans-Medium',
@@ -80,27 +121,28 @@ export default function NetworkSettingsScreen() {
                     color: theme.textSecondary,
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
-                    marginBottom: theme.spacing.md,
-                    paddingHorizontal: theme.spacing.xs
+                    marginBottom: 12,
+                    paddingHorizontal: 4
                 }}>
                     {title}
                 </Text>
             )}
             <View style={{
                 backgroundColor: theme.surface,
-                borderRadius: theme.borderRadius.card,
+                borderRadius: 16,
                 overflow: 'hidden',
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: theme.elevation.card },
+                shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: 0.1,
                 shadowRadius: 4,
-                elevation: theme.elevation.card
+                elevation: 2
             }}>
                 {children}
             </View>
         </View>
     );
 
+    // 설정 아이템 컴포넌트
     const SettingsItem = ({
         icon,
         iconColor = theme.textSecondary,
@@ -125,9 +167,8 @@ export default function NetworkSettingsScreen() {
                 style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: theme.spacing.md,
-                    padding: theme.spacing.md,
-                    backgroundColor: onPress ? 'transparent' : 'transparent'
+                    padding: 16,
+                    backgroundColor: 'transparent'
                 }}
                 onPress={onPress}
                 disabled={!onPress}
@@ -139,7 +180,8 @@ export default function NetworkSettingsScreen() {
                         borderRadius: 8,
                         backgroundColor: iconBg,
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        marginRight: 12
                     }}>
                         <Ionicons name={icon as any} size={16} color={iconColor} />
                     </View>
@@ -181,183 +223,249 @@ export default function NetworkSettingsScreen() {
         </View>
     );
 
-    const getConnectionQualityColor = () => {
-        const quality = connectionService.getConnectionQuality();
-        switch (quality) {
-            case 'excellent': return theme.success;
-            case 'good': return theme.primary;
-            case 'fair': return theme.warning;
-            case 'poor': return theme.error;
-            default: return theme.textSecondary;
-        }
-    };
+    // 네트워크 상태 표시 컴포넌트
+    const NetworkStatusCard = () => (
+        <View style={{
+            backgroundColor: theme.surface,
+            borderRadius: 16,
+            padding: 20,
+            marginBottom: 24,
+            shadowColor: '#000',
+            shadowOpacity: 0.04,
+            shadowRadius: 8,
+            elevation: 2,
+        }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: networkInfo.isConnected ? theme.success + '20' : theme.error + '20',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: 12
+                }}>
+                    <Ionicons
+                        name={networkInfo.isWifi ? 'wifi' : networkInfo.isCellular ? 'cellular' : 'cloud-offline'}
+                        size={20}
+                        color={networkInfo.isConnected ? theme.success : theme.error}
+                    />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={{
+                        fontSize: 18,
+                        fontFamily: 'GoogleSans-Medium',
+                        color: theme.textPrimary
+                    }}>
+                        {networkInfo.isConnected ? '연결됨' : '연결 안됨'}
+                    </Text>
+                    <Text style={{
+                        fontSize: 13,
+                        color: theme.textSecondary,
+                        marginTop: 2
+                    }}>
+                        {networkInfo.isWifi ? 'Wi-Fi' : networkInfo.isCellular ? '모바일 데이터' : '오프라인'}
+                    </Text>
+                </View>
+                <View style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 6,
+                    backgroundColor: networkInfo.isConnected ? theme.success : theme.error
+                }} />
+            </View>
 
-    const getConnectionQualityText = () => {
-        const quality = connectionService.getConnectionQuality();
-        switch (quality) {
-            case 'excellent': return '탁월';
-            case 'good': return '좋음';
-            case 'fair': return '보통';
-            case 'poor': return '약함';
-            default: return '연결 없음';
-        }
-    };
+            {networkInfo.isWifi && networkInfo.ssid && (
+                <View style={{ marginBottom: 12 }}>
+                    <Text style={{
+                        fontSize: 14,
+                        fontFamily: 'GoogleSans-Medium',
+                        color: theme.textPrimary
+                    }}>
+                        네트워크: {networkInfo.ssid}
+                    </Text>
+                    {networkInfo.strength && (
+                        <Text style={{
+                            fontSize: 12,
+                            color: theme.textSecondary,
+                            marginTop: 2
+                        }}>
+                            신호 강도: {networkInfo.strength}%
+                        </Text>
+                    )}
+                </View>
+            )}
+
+            <TouchableOpacity
+                style={{
+                    backgroundColor: theme.primary + '10',
+                    borderRadius: 8,
+                    padding: 12,
+                    alignItems: 'center'
+                }}
+                onPress={() => {
+                    if (NetInfo) {
+                        // NetInfo가 사용 가능한 경우 실제 새로고침
+                        NetInfo.fetch().then(state => {
+                            setNetworkInfo({
+                                isConnected: state.isConnected || false,
+                                type: state.type || 'unknown',
+                                isWifi: state.type === 'wifi',
+                                isCellular: state.type === 'cellular',
+                                ssid: state.details?.ssid,
+                                strength: state.details?.strength,
+                            });
+                            Alert.alert('네트워크 새로고침', '네트워크 정보가 업데이트되었습니다.');
+                        }).catch(error => {
+                            console.error('네트워크 새로고침 실패:', error);
+                            Alert.alert('오류', '네트워크 정보를 새로고침하는 데 실패했습니다.');
+                        });
+                    } else {
+                        // NetInfo가 사용 불가능한 경우 모의 새로고침
+                        setNetworkInfo(prev => ({
+                            ...prev,
+                            strength: Math.floor(Math.random() * 30) + 70,
+                        }));
+                        Alert.alert('네트워크 새로고침', '모의 네트워크 정보가 업데이트되었습니다.');
+                    }
+                }}
+            >
+                <Text style={{
+                    fontSize: 14,
+                    fontFamily: 'GoogleSans-Medium',
+                    color: theme.primary
+                }}>
+                    새로고침
+                </Text>
+            </TouchableOpacity>
+        </View>
+    );
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
             <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-            <ScrollView
-                contentContainerStyle={{ padding: 16 }}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Header */}
-                <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginBottom: theme.spacing.lg
-                }}>
-                    <TouchableOpacity style={{
+
+            {/* 헤더 */}
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 16,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.outline
+            }}>
+                <TouchableOpacity
+                    onPress={() => navigation.goBack()}
+                    style={{
                         width: 40,
                         height: 40,
                         borderRadius: 20,
                         backgroundColor: theme.surfaceVariant,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        marginRight: theme.spacing.md
-                    }}>
-                        <Ionicons name="arrow-back" size={20} color={theme.textPrimary} />
-                    </TouchableOpacity>
-                    <Text style={{
-                        fontFamily: 'GoogleSans-Medium',
-                        fontSize: 20,
-                        color: theme.textPrimary
-                    }}>
-                        네트워크 설정
-                    </Text>
-                </View>
+                        marginRight: 12
+                    }}
+                >
+                    <Ionicons name="arrow-back" size={20} color={theme.textPrimary} />
+                </TouchableOpacity>
+                <Text style={{
+                    fontSize: 20,
+                    fontFamily: 'GoogleSans-Medium',
+                    color: theme.textPrimary
+                }}>
+                    네트워크 설정
+                </Text>
+            </View>
 
-                {/* 연결 상태 */}
-                <SettingsGroup title="연결 상태">
+            <ScrollView
+                contentContainerStyle={{ padding: 16 }}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* 네트워크 상태 카드 */}
+                <NetworkStatusCard />
+
+                {/* 연결 설정 */}
+                <SettingsGroup title="연결 설정">
                     <SettingsItem
                         icon="wifi"
-                        iconColor={connectionStatus.isConnected ? theme.success : theme.error}
-                        iconBg={connectionStatus.isConnected ? theme.success + '20' : theme.error + '20'}
-                        label="카메라 연결"
-                        description={connectionStatus.isConnected ? '연결됨' : '연결되지 않음'}
-                        rightElement={
-                            <View style={{
-                                backgroundColor: connectionStatus.isConnected ? theme.success + '20' : theme.error + '20',
-                                borderRadius: 12,
-                                paddingHorizontal: theme.spacing.sm,
-                                paddingVertical: 2
-                            }}>
-                                <Text style={{
-                                    fontFamily: 'GoogleSans-Medium',
-                                    fontSize: 10,
-                                    color: connectionStatus.isConnected ? theme.success : theme.error
-                                }}>
-                                    {connectionStatus.isConnected ? '연결됨' : '연결 안됨'}
-                                </Text>
-                            </View>
-                        }
-                    />
-                    <SettingsItem
-                        icon="speedometer"
-                        iconColor={getConnectionQualityColor()}
-                        iconBg={getConnectionQualityColor() + '20'}
-                        label="연결 품질"
-                        description={`${connectionStatus.signalStrength} dBm • ${connectionStatus.latency}ms`}
-                        rightElement={
-                            <View style={{
-                                backgroundColor: getConnectionQualityColor() + '20',
-                                borderRadius: 12,
-                                paddingHorizontal: theme.spacing.sm,
-                                paddingVertical: 2
-                            }}>
-                                <Text style={{
-                                    fontFamily: 'GoogleSans-Medium',
-                                    fontSize: 10,
-                                    color: getConnectionQualityColor()
-                                }}>
-                                    {getConnectionQualityText()}
-                                </Text>
-                            </View>
-                        }
-                    />
-                    <SettingsItem
-                        icon="settings"
                         iconColor={theme.info}
                         iconBg={theme.info + '20'}
+                        label="Wi-Fi"
+                        description="무선 네트워크 연결"
+                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
+                        onPress={() => navigation.navigate('WiFiSettings')}
+                    />
+                    <SettingsItem
+                        icon="cellular"
+                        iconColor={theme.info}
+                        iconBg={theme.info + '20'}
+                        label="모바일 데이터"
+                        description="셀룰러 네트워크 사용"
+                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
+                        onPress={() => navigation.navigate('MobileDataSettings')}
+                        isLast
+                    />
+                </SettingsGroup>
+
+                {/* 자동 연결 */}
+                <SettingsGroup title="자동 연결">
+                    <SettingsItem
+                        icon="refresh"
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
                         label="자동 연결"
-                        description="앱 실행 시 자동으로 카메라에 연결"
+                        description="사용 가능한 네트워크에 자동 연결"
                         rightElement={
                             <Switch
-                                value={autoConnect}
-                                onValueChange={setAutoConnect}
+                                value={settings.autoConnect}
+                                onValueChange={(value) => {
+                                    console.log(`🔗 [AUTO CONNECT] 토글 변경: ${value}`);
+                                    setSettings(prev => ({ ...prev, autoConnect: value }));
+                                }}
                                 trackColor={{ false: theme.outline, true: theme.primary }}
-                                thumbColor={autoConnect ? theme.onPrimary : theme.surface}
+                                thumbColor={theme.surface}
+                            />
+                        }
+                    />
+                    <SettingsItem
+                        icon="save"
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
+                        label="데이터 절약"
+                        description="모바일 데이터 사용량 최적화"
+                        rightElement={
+                            <Switch
+                                value={settings.dataSaver}
+                                onValueChange={(value) => {
+                                    console.log(`💾 [DATA SAVER] 토글 변경: ${value}`);
+                                    setSettings(prev => ({ ...prev, dataSaver: value }));
+                                }}
+                                trackColor={{ false: theme.outline, true: theme.primary }}
+                                thumbColor={theme.surface}
                             />
                         }
                         isLast
                     />
                 </SettingsGroup>
 
-                {/* 연결 관리 */}
-                <SettingsGroup title="연결 관리">
+                {/* 보안 */}
+                <SettingsGroup title="보안">
                     <SettingsItem
-                        icon="search"
-                        iconColor={theme.primary}
-                        iconBg={theme.primary + '20'}
-                        label="네트워크 스캔"
-                        description="같은 Wi-Fi 네트워크의 카메라 검색"
-                        rightElement={
-                            networkScanning ? (
-                                <View style={{ width: 20, height: 20 }}>
-                                    <Ionicons name="reload" size={16} color={theme.primary} />
-                                </View>
-                            ) : (
-                                <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-                            )
-                        }
-                        onPress={handleNetworkScan}
-                    />
-                    <SettingsItem
-                        icon="checkmark-circle"
+                        icon="shield"
                         iconColor={theme.success}
                         iconBg={theme.success + '20'}
-                        label="연결 테스트"
-                        description="현재 연결 상태 및 속도 테스트"
-                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={handleConnectionTest}
-                    />
-                    <SettingsItem
-                        icon="close-circle"
-                        iconColor={theme.error}
-                        iconBg={theme.error + '20'}
-                        label="연결 해제"
-                        description="카메라와의 연결을 해제합니다"
-                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={handleDisconnect}
-                        isLast
-                    />
-                </SettingsGroup>
-
-                {/* Wi-Fi 정보 */}
-                <SettingsGroup title="Wi-Fi 정보">
-                    <SettingsItem
-                        icon="wifi"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
-                        label="현재 네트워크"
-                        description="Home_WiFi_5G"
-                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                    />
-                    <SettingsItem
-                        icon="speedometer"
-                        iconColor={theme.warning}
-                        iconBg={theme.warning + '20'}
-                        label="네트워크 속도"
-                        description={`${connectionStatus.bandwidth} • ${connectionStatus.latency}ms 지연`}
+                        label="VPN"
+                        description="가상 사설 네트워크 연결"
+                        rightElement={
+                            <Switch
+                                value={settings.vpnEnabled}
+                                onValueChange={(value) => {
+                                    console.log(`🔒 [VPN] 토글 변경: ${value}`);
+                                    setSettings(prev => ({ ...prev, vpnEnabled: value }));
+                                }}
+                                trackColor={{ false: theme.outline, true: theme.primary }}
+                                thumbColor={theme.surface}
+                            />
+                        }
                         isLast
                     />
                 </SettingsGroup>
@@ -365,20 +473,22 @@ export default function NetworkSettingsScreen() {
                 {/* 고급 설정 */}
                 <SettingsGroup title="고급 설정">
                     <SettingsItem
-                        icon="shield"
-                        iconColor={theme.warning}
-                        iconBg={theme.warning + '20'}
-                        label="연결 보안"
-                        description="WPA2-PSK 암호화 사용 중"
+                        icon="settings"
+                        iconColor={theme.textSecondary}
+                        iconBg={theme.surfaceVariant}
+                        label="네트워크 재설정"
+                        description="모든 네트워크 설정을 초기화"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                    />
-                    <SettingsItem
-                        icon="refresh"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
-                        label="연결 재설정"
-                        description="모든 연결 설정을 초기화합니다"
-                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
+                        onPress={() => {
+                            Alert.alert(
+                                '네트워크 재설정',
+                                '모든 네트워크 설정을 초기화하시겠습니까?',
+                                [
+                                    { text: '취소', style: 'cancel' },
+                                    { text: '재설정', style: 'destructive' }
+                                ]
+                            );
+                        }}
                         isLast
                     />
                 </SettingsGroup>
