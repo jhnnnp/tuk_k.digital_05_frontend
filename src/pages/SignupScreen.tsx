@@ -13,6 +13,7 @@ import {
     ScrollView,
     Switch,
 } from 'react-native';
+
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -35,6 +36,7 @@ const schema = yup.object({
     agreeLocation: yup.bool().oneOf([true], '위치 접근 권한에 동의해주세요.').required(),
     agreeMarketing: yup.bool().optional(),
     name: yup.string().required('이름을 입력해주세요.'),
+    nickname: yup.string().required('닉네임을 입력해주세요.'),
     birth: yup
         .string()
         .matches(/^\d{8}$/, 'YYYYMMDD 형식으로 입력하세요.')
@@ -68,6 +70,7 @@ interface FormData {
     agreeLocation: boolean;
     agreeMarketing: boolean;
     name: string;
+    nickname: string;
     birth: string;
     phone: string;
     code: string;
@@ -97,6 +100,9 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const fadeAnim = useSharedValue(1);
     const scaleAnim = useSharedValue(1);
     const progressAnim = useSharedValue(0);
+    const stepIndicatorAnim = useSharedValue(0);
+    const contentScaleAnim = useSharedValue(1);
+    const buttonScaleAnim = useSharedValue(1);
 
     // 초기 프로그레스 바 애니메이션
     useEffect(() => {
@@ -138,6 +144,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
             agreeLocation: false,
             agreeMarketing: false,
             name: '',
+            nickname: '',
             birth: '',
             phone: '',
             code: '',
@@ -154,7 +161,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const agreeMarketing = watch('agreeMarketing');
     const allAgree = agreeTerms && agreePrivacy && agreeMicrophone && agreeLocation;
 
-    const BACKEND_BASE_URL = 'http://192.168.162.52:3000'; // 실제 PC의 로컬 IP로 적용
+    const BACKEND_BASE_URL = 'http://192.168.175.160:3000'; // 실제 PC의 로컬 IP로 적용
 
     // firebaseConfirmation 상태 제거
 
@@ -307,7 +314,10 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
     // 애니메이션 스타일
     const slideAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: slideAnim.value }],
+        transform: [
+            { translateX: slideAnim.value },
+            { scale: contentScaleAnim.value }
+        ] as any,
         opacity: fadeAnim.value,
     }));
 
@@ -319,13 +329,22 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         width: `${progressAnim.value * 100}%`,
     }));
 
+    const stepIndicatorAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: stepIndicatorAnim.value }],
+    }));
+
+    const buttonAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: buttonScaleAnim.value }],
+    }));
+
     // 애니메이션 함수들
     const animateStepTransition = (direction: 'next' | 'prev', callback: () => void) => {
         const slideDistance = direction === 'next' ? -300 : 300;
 
-        // 현재 화면을 밖으로 슬라이드
+        // 현재 화면을 밖으로 슬라이드 + 스케일 애니메이션
         slideAnim.value = withTiming(slideDistance, { duration: 300 });
         fadeAnim.value = withTiming(0, { duration: 200 });
+        contentScaleAnim.value = withTiming(0.95, { duration: 200 });
 
         setTimeout(() => {
             // 콜백 실행 (스텝 변경)
@@ -334,10 +353,18 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
             // 새 화면을 반대 방향에서 시작
             slideAnim.value = -slideDistance;
             fadeAnim.value = 0;
+            contentScaleAnim.value = 0.95;
 
-            // 새 화면을 중앙으로 슬라이드
+            // 새 화면을 중앙으로 슬라이드 + 스케일 복원
             slideAnim.value = withTiming(0, { duration: 300 });
             fadeAnim.value = withTiming(1, { duration: 200 });
+            contentScaleAnim.value = withTiming(1, { duration: 300 });
+
+            // 스텝 인디케이터 애니메이션
+            stepIndicatorAnim.value = withSpring(1, {
+                damping: 15,
+                stiffness: 100,
+            });
         }, 200);
     };
 
@@ -362,6 +389,11 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
     const onNext = () => {
         if (step < 4) {
+            // 버튼 클릭 애니메이션
+            buttonScaleAnim.value = withSpring(0.95, { duration: 100 }, () => {
+                buttonScaleAnim.value = withSpring(1, { duration: 100 });
+            });
+
             animateStepTransition('next', () => {
                 const newStep = step + 1;
                 setStep(newStep);
@@ -376,6 +408,11 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
     const onPrev = () => {
         if (step > 1) {
+            // 버튼 클릭 애니메이션
+            buttonScaleAnim.value = withSpring(0.95, { duration: 100 }, () => {
+                buttonScaleAnim.value = withSpring(1, { duration: 100 });
+            });
+
             animateStepTransition('prev', () => {
                 const newStep = step - 1;
                 setStep(newStep);
@@ -416,6 +453,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                     email: data.email,
                     password: data.password,
                     name: data.name,
+                    nickname: data.nickname,
                     phone: cleanPhone,
                     birth: data.birth,
                     code: data.code, // 인증번호 추가
@@ -466,6 +504,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
     const isStep2Valid = () => {
         const name = watch('name');
+        const nickname = watch('nickname');
         const birth = watch('birth');
         const phone = watch('phone');
         const code = watch('code');
@@ -476,6 +515,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
         console.log('🔍 Step 2 유효성 검사 디버깅:');
         console.log('  - 이름:', name, '| 유효:', !!name);
+        console.log('  - 닉네임:', nickname, '| 유효:', !!nickname);
         console.log('  - 생년월일 (원본):', birth);
         console.log('  - 생년월일 (숫자만):', birthNumbers, '| 길이:', birthNumbers.length);
         console.log('  - 휴대폰 (원본):', phone);
@@ -485,6 +525,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         console.log('  - 인증 요청됨:', certSent);
 
         const isValid = name &&
+            nickname &&
             birthNumbers.length === 8 &&
             phoneNumbers.length >= 10 &&
             (!certSent || (certSent && code && code.length === 6 && certVerified));
@@ -492,6 +533,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         console.log('  - 최종 유효성:', isValid);
         console.log('  - 조건별 결과:');
         console.log('    * 이름 유효:', !!name);
+        console.log('    * 닉네임 유효:', !!nickname);
         console.log('    * 생년월일 8자리:', birthNumbers.length === 8);
         console.log('    * 휴대폰 10자리 이상:', phoneNumbers.length >= 10);
         console.log('    * 인증 조건:', (!certSent || (certSent && code && code.length === 6 && certVerified)));
@@ -501,6 +543,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
     const getStep2ValidationMessage = () => {
         const name = watch('name');
+        const nickname = watch('nickname');
         const birth = watch('birth');
         const phone = watch('phone');
         const code = watch('code');
@@ -511,6 +554,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
 
         console.log('🔍 Step 2 오류 메시지 디버깅:');
         console.log('  - 이름:', name, '| 빈 값:', !name);
+        console.log('  - 닉네임:', nickname, '| 빈 값:', !nickname);
         console.log('  - 생년월일 (숫자만):', birthNumbers, '| 길이:', birthNumbers.length, '| 부족:', birthNumbers.length < 8);
         console.log('  - 휴대폰 (숫자만):', phoneNumbers, '| 길이:', phoneNumbers.length, '| 부족:', phoneNumbers.length < 10);
         console.log('  - 인증번호:', code, '| 길이:', code?.length);
@@ -522,6 +566,10 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         //     console.log('  ❌ 오류: 이름 미입력');
         //     return '이름을 입력해주세요';
         // }
+        if (!nickname) {
+            console.log('  ❌ 오류: 닉네임 미입력');
+            return '닉네임을 입력해주세요';
+        }
         if (!birthNumbers || birthNumbers.length < 8) {
             console.log('  ❌ 오류: 생년월일 부족 (현재:', birthNumbers.length, '자리)');
             return '생년월일을 완전히 입력해주세요';
@@ -708,71 +756,241 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                 <ScrollView
                     ref={scrollViewRef}
-                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingTop: 30 }}
+                    contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-start', paddingTop: 20, paddingBottom: 40 }}
                 >
-                    <View style={{ paddingHorizontal: 24, paddingVertical: 20 }}>
+                    <View style={{ paddingHorizontal: 24, paddingVertical: 10 }}>
+                        {/* 뒤로가기 버튼 */}
+                        <TouchableOpacity
+                            style={{
+                                position: 'absolute',
+                                top: 10,
+                                left: 24,
+                                zIndex: 10,
+                                width: 40,
+                                height: 40,
+                                borderRadius: 20,
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                                elevation: 3,
+                                borderWidth: 1,
+                                borderColor: 'rgba(0, 0, 0, 0.05)'
+                            }}
+                            onPress={onBackToLogin}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={{
+                                color: '#29588A',
+                                fontSize: 20,
+                                fontWeight: 'bold'
+                            }}>←</Text>
+                        </TouchableOpacity>
+
                         {/* 브랜드 헤더 */}
-                        <View style={{ alignItems: 'center', marginBottom: 60 }}>
+                        <View style={{ alignItems: 'center', marginBottom: 30, marginTop: 20 }}>
                             <Text style={{ color: '#29588A', fontSize: 48, fontWeight: 'bold', letterSpacing: 2 }}>TIBO</Text>
                             <Text style={{ color: '#29588A', fontSize: 18, fontWeight: 'bold', letterSpacing: 1, marginTop: 2 }}>KDT PROJECT TEAM 5</Text>
                         </View>
 
                         <View style={{ alignItems: 'center', marginBottom: 32 }}>
                             {/* 프로그레스 바 */}
-                            <View style={{ width: '100%', maxWidth: 300, marginBottom: 16 }}>
-                                <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 8 }}>
-                                    <Text style={{ color: '#29588A', fontSize: 14, fontWeight: '600' }}>STEP {step} of 4</Text>
+                            <View style={{ width: '100%', maxWidth: 320, marginBottom: 20 }}>
+                                <View style={{
+                                    flexDirection: 'row',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    marginBottom: 16,
+                                    paddingHorizontal: 2
+                                }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <View style={{
+                                            width: 6,
+                                            height: 6,
+                                            borderRadius: 3,
+                                            backgroundColor: '#29588A',
+                                            marginRight: 8
+                                        }} />
+                                        <Text style={{
+                                            color: '#1F2937',
+                                            fontSize: 14,
+                                            fontWeight: '600',
+                                            letterSpacing: -0.2
+                                        }}>
+                                            {step === 1 ? '약관 동의' :
+                                                step === 2 ? '본인 인증' :
+                                                    step === 3 ? '계정 생성' : '가입 완료'}
+                                        </Text>
+                                    </View>
+                                    <View style={{
+                                        backgroundColor: 'rgba(41, 88, 138, 0.08)',
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 8,
+                                        borderRadius: 20,
+                                        borderWidth: 1.5,
+                                        borderColor: 'rgba(41, 88, 138, 0.15)',
+                                        shadowColor: '#29588A',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.15,
+                                        shadowRadius: 4,
+                                        elevation: 2,
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        gap: 6
+                                    }}>
+                                        <View style={{
+                                            width: 4,
+                                            height: 4,
+                                            borderRadius: 2,
+                                            backgroundColor: '#29588A',
+                                            opacity: 0.8
+                                        }} />
+                                        <Text style={{
+                                            color: '#29588A',
+                                            fontSize: 13,
+                                            fontWeight: '800',
+                                            letterSpacing: 0.3
+                                        }}>
+                                            {step}
+                                        </Text>
+                                        <Text style={{
+                                            color: 'rgba(41, 88, 138, 0.6)',
+                                            fontSize: 11,
+                                            fontWeight: '600',
+                                            letterSpacing: 0.2
+                                        }}>
+                                            /4
+                                        </Text>
+                                    </View>
                                 </View>
                                 <View style={{
-                                    width: '100%', height: 6, backgroundColor: '#E5E7EB',
-                                    borderRadius: 3, overflow: 'hidden'
+                                    width: '100%', height: 6, backgroundColor: '#F1F5F9',
+                                    borderRadius: 3, overflow: 'hidden',
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 1 },
+                                    shadowOpacity: 0.05,
+                                    shadowRadius: 2,
+                                    elevation: 1
                                 }}>
                                     <Animated.View style={[{
                                         height: '100%',
                                         backgroundColor: '#29588A', borderRadius: 3,
-                                        shadowColor: '#29588A', shadowOffset: { width: 0, height: 1 },
-                                        shadowOpacity: 0.3, shadowRadius: 2, elevation: 2
+                                        shadowColor: '#29588A', shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.3, shadowRadius: 4, elevation: 2
                                     }, progressAnimatedStyle]} />
                                 </View>
                             </View>
 
-                            {/* 스텝 인디케이터 */}
-                            <View style={{ width: '100%', maxWidth: 300, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                                {[1, 2, 3, 4].map((stepNumber) => (
-                                    <View key={stepNumber} style={{ alignItems: 'center' }}>
-                                        <View style={{
-                                            width: 28, height: 28, borderRadius: 14,
-                                            backgroundColor: step >= stepNumber ? '#29588A' : '#E5E7EB',
-                                            justifyContent: 'center', alignItems: 'center',
-                                            shadowColor: step >= stepNumber ? '#29588A' : 'transparent',
-                                            shadowOffset: { width: 0, height: 2 },
-                                            shadowOpacity: step >= stepNumber ? 0.3 : 0,
-                                            shadowRadius: 4, elevation: step >= stepNumber ? 2 : 0
-                                        }}>
-                                            {step > stepNumber ? (
-                                                <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>✓</Text>
-                                            ) : (
-                                                <Text style={{
-                                                    color: step >= stepNumber ? 'white' : '#9CA3AF',
-                                                    fontSize: 12,
-                                                    fontWeight: 'bold'
-                                                }}>
-                                                    {stepNumber}
-                                                </Text>
-                                            )}
-                                        </View>
+                            {/* 스텝 인디케이터 - 완전 새로 작성 */}
+                            <View style={{
+                                width: '100%',
+                                maxWidth: 320,
+                                flexDirection: 'row',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginTop: 20,
+                                paddingHorizontal: 4
+                            }}>
+                                {/* 스텝 1 */}
+                                <View style={{ alignItems: 'center' }}>
+                                    <View style={{
+                                        width: 40, height: 40, borderRadius: 20,
+                                        backgroundColor: '#29588A',
+                                        justifyContent: 'center', alignItems: 'center',
+                                        shadowColor: '#29588A',
+                                        shadowOffset: { width: 0, height: 3 },
+                                        shadowOpacity: 0.4,
+                                        shadowRadius: 6, elevation: 3
+                                    }}>
                                         <Text style={{
-                                            color: step >= stepNumber ? '#29588A' : '#9CA3AF',
-                                            fontSize: 10,
-                                            fontWeight: '500',
-                                            marginTop: 4
-                                        }}>
-                                            {stepNumber === 1 ? '약관' :
-                                                stepNumber === 2 ? '인증' :
-                                                    stepNumber === 3 ? '계정' : '완료'}
-                                        </Text>
+                                            color: 'white',
+                                            fontSize: 16,
+                                            fontWeight: '700'
+                                        }}>1</Text>
                                     </View>
-                                ))}
+                                    <Text style={{
+                                        color: '#1F2937',
+                                        fontSize: 12,
+                                        fontWeight: '600',
+                                        marginTop: 8,
+                                        textAlign: 'center'
+                                    }}>약관</Text>
+                                </View>
+
+                                {/* 스텝 2 */}
+                                <View style={{ alignItems: 'center' }}>
+                                    <View style={{
+                                        width: 40, height: 40, borderRadius: 20,
+                                        backgroundColor: '#F8FAFC',
+                                        justifyContent: 'center', alignItems: 'center',
+                                        borderWidth: 2,
+                                        borderColor: '#E2E8F0'
+                                    }}>
+                                        <Text style={{
+                                            color: '#94A3B8',
+                                            fontSize: 16,
+                                            fontWeight: '700'
+                                        }}>2</Text>
+                                    </View>
+                                    <Text style={{
+                                        color: '#94A3B8',
+                                        fontSize: 12,
+                                        fontWeight: '600',
+                                        marginTop: 8,
+                                        textAlign: 'center'
+                                    }}>인증</Text>
+                                </View>
+
+                                {/* 스텝 3 */}
+                                <View style={{ alignItems: 'center' }}>
+                                    <View style={{
+                                        width: 40, height: 40, borderRadius: 20,
+                                        backgroundColor: '#F8FAFC',
+                                        justifyContent: 'center', alignItems: 'center',
+                                        borderWidth: 2,
+                                        borderColor: '#E2E8F0'
+                                    }}>
+                                        <Text style={{
+                                            color: '#94A3B8',
+                                            fontSize: 16,
+                                            fontWeight: '700'
+                                        }}>3</Text>
+                                    </View>
+                                    <Text style={{
+                                        color: '#94A3B8',
+                                        fontSize: 12,
+                                        fontWeight: '600',
+                                        marginTop: 8,
+                                        textAlign: 'center'
+                                    }}>계정</Text>
+                                </View>
+
+                                {/* 스텝 4 */}
+                                <View style={{ alignItems: 'center' }}>
+                                    <View style={{
+                                        width: 40, height: 40, borderRadius: 20,
+                                        backgroundColor: '#F8FAFC',
+                                        justifyContent: 'center', alignItems: 'center',
+                                        borderWidth: 2,
+                                        borderColor: '#E2E8F0'
+                                    }}>
+                                        <Text style={{
+                                            color: '#94A3B8',
+                                            fontSize: 16,
+                                            fontWeight: '700'
+                                        }}>4</Text>
+                                    </View>
+                                    <Text style={{
+                                        color: '#94A3B8',
+                                        fontSize: 12,
+                                        fontWeight: '600',
+                                        marginTop: 8,
+                                        textAlign: 'center'
+                                    }}>완료</Text>
+                                </View>
                             </View>
                         </View>
 
@@ -934,21 +1152,23 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                     </TouchableOpacity>
                                 </View>
 
-                                <TouchableOpacity
-                                    style={{
-                                        backgroundColor: allAgree ? '#29588A' : '#E5E7EB',
-                                        paddingVertical: 16, borderRadius: 12, alignItems: 'center',
-                                        shadowColor: allAgree ? '#29588A' : 'transparent',
-                                        shadowOffset: { width: 0, height: 2 },
-                                        shadowOpacity: allAgree ? 0.2 : 0,
-                                        shadowRadius: 4,
-                                        elevation: allAgree ? 4 : 0
-                                    }}
-                                    disabled={!allAgree}
-                                    onPress={onNext}
-                                >
-                                    <Text style={{ color: allAgree ? '#fff' : '#9CA3AF', fontSize: 16, fontWeight: '600' }}>다음</Text>
-                                </TouchableOpacity>
+                                <Animated.View style={buttonAnimatedStyle}>
+                                    <TouchableOpacity
+                                        style={{
+                                            backgroundColor: allAgree ? '#29588A' : '#E5E7EB',
+                                            paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+                                            shadowColor: allAgree ? '#29588A' : 'transparent',
+                                            shadowOffset: { width: 0, height: 2 },
+                                            shadowOpacity: allAgree ? 0.2 : 0,
+                                            shadowRadius: 4,
+                                            elevation: allAgree ? 4 : 0
+                                        }}
+                                        disabled={!allAgree}
+                                        onPress={onNext}
+                                    >
+                                        <Text style={{ color: allAgree ? '#fff' : '#9CA3AF', fontSize: 16, fontWeight: '600' }}>다음</Text>
+                                    </TouchableOpacity>
+                                </Animated.View>
                             </Animated.View>
                         )}
 
@@ -1018,6 +1238,40 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                 onChangeText={field.onChange}
                                             />
                                             {/* 이름 에러 메시지 제거 */}
+                                        </View>
+                                    )} />
+
+                                    <Controller name="nickname" control={control} render={({ field }) => (
+                                        <View style={{ marginBottom: 20 }}>
+                                            <Text style={{
+                                                color: '#374151',
+                                                fontSize: 15,
+                                                fontWeight: '600',
+                                                marginBottom: 10,
+                                                letterSpacing: 0.5
+                                            }}>닉네임</Text>
+                                            <TextInput
+                                                style={{
+                                                    backgroundColor: '#F8FAFC',
+                                                    height: 56,
+                                                    borderRadius: 16,
+                                                    paddingHorizontal: 20,
+                                                    fontSize: 16,
+                                                    color: '#1F2937',
+                                                    borderWidth: 2,
+                                                    borderColor: errors.nickname ? '#EF4444' : '#E2E8F0',
+                                                    shadowColor: '#000',
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.06,
+                                                    shadowRadius: 8,
+                                                    elevation: 3,
+                                                }}
+                                                placeholder="닉네임을 입력하세요"
+                                                placeholderTextColor="#94A3B8"
+                                                value={field.value}
+                                                onChangeText={field.onChange}
+                                            />
+                                            {errors.nickname && <Text style={{ color: '#EF4444', fontSize: 13, marginTop: 6, fontWeight: '500' }}>{errors.nickname.message}</Text>}
                                         </View>
                                     )} />
 
@@ -1494,6 +1748,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                         password: watch('password'),
                                                         confirm: watch('confirm'),
                                                         name: watch('name'),
+                                                        nickname: watch('nickname'),
                                                         birth: watch('birth'),
                                                         phone: watch('phone'),
                                                         code: watch('code'),
@@ -1589,64 +1844,67 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                             </Animated.View>
                         )}
                     </View>
-                    <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                        <Text style={{ color: '#6B7280', fontSize: 12, marginBottom: 8, fontWeight: '500' }}>개발 모드</Text>
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            backgroundColor: '#F8FAFC',
-                            borderRadius: 8,
-                            padding: 4,
-                            borderWidth: 1,
-                            borderColor: '#E5E7EB'
-                        }}>
-                            <TouchableOpacity
-                                style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 6,
-                                    backgroundColor: isMockMode ? '#10B981' : 'transparent',
-                                    marginRight: 4
-                                }}
-                                onPress={() => setIsMockMode(true)}
-                            >
-                                <Text style={{
-                                    color: isMockMode ? 'white' : '#6B7280',
-                                    fontSize: 12,
-                                    fontWeight: '600'
-                                }}>💡 Mock</Text>
-                            </TouchableOpacity>
+                    {/* 개발 모드는 Step 2 (폰 인증)에서만 표시 */}
+                    {step === 2 && (
+                        <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                            <Text style={{ color: '#6B7280', fontSize: 12, marginBottom: 8, fontWeight: '500' }}>개발 모드</Text>
+                            <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                backgroundColor: '#F8FAFC',
+                                borderRadius: 8,
+                                padding: 4,
+                                borderWidth: 1,
+                                borderColor: '#E5E7EB'
+                            }}>
+                                <TouchableOpacity
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 6,
+                                        borderRadius: 6,
+                                        backgroundColor: isMockMode ? '#10B981' : 'transparent',
+                                        marginRight: 4
+                                    }}
+                                    onPress={() => setIsMockMode(true)}
+                                >
+                                    <Text style={{
+                                        color: isMockMode ? 'white' : '#6B7280',
+                                        fontSize: 12,
+                                        fontWeight: '600'
+                                    }}>💡 Mock</Text>
+                                </TouchableOpacity>
 
-                            <TouchableOpacity
-                                style={{
-                                    flexDirection: 'row',
-                                    alignItems: 'center',
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 6,
-                                    borderRadius: 6,
-                                    backgroundColor: !isMockMode ? '#29588A' : 'transparent',
-                                    marginLeft: 4
-                                }}
-                                onPress={() => setIsMockMode(false)}
-                            >
-                                <Text style={{
-                                    color: !isMockMode ? 'white' : '#6B7280',
-                                    fontSize: 12,
-                                    fontWeight: '600'
-                                }}>📱 실제 SMS</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingHorizontal: 12,
+                                        paddingVertical: 6,
+                                        borderRadius: 6,
+                                        backgroundColor: !isMockMode ? '#29588A' : 'transparent',
+                                        marginLeft: 4
+                                    }}
+                                    onPress={() => setIsMockMode(false)}
+                                >
+                                    <Text style={{
+                                        color: !isMockMode ? 'white' : '#6B7280',
+                                        fontSize: 12,
+                                        fontWeight: '600'
+                                    }}>📱 실제 SMS</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={{
+                                color: isMockMode ? '#10B981' : '#29588A',
+                                fontSize: 10,
+                                marginTop: 4,
+                                fontWeight: '500'
+                            }}>
+                                {isMockMode ? '💡 데모 환경: 인증번호가 자동으로 생성됩니다' : '📱 실제 SMS 발송 모드'}
+                            </Text>
                         </View>
-                        <Text style={{
-                            color: isMockMode ? '#10B981' : '#29588A',
-                            fontSize: 10,
-                            marginTop: 4,
-                            fontWeight: '500'
-                        }}>
-                            {isMockMode ? '💡 데모 환경: 인증번호가 자동으로 생성됩니다' : '📱 실제 SMS 발송 모드'}
-                        </Text>
-                    </View>
+                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
 

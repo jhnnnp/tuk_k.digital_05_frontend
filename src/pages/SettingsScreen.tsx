@@ -13,6 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AnimatedToggleSwitch from '../components/atoms/AnimatedToggleSwitch';
+import { QuietTimeService, QuietTimeSettings } from '../services/QuietTimeService';
+import QuietTimeModal from '../components/atoms/QuietTimeModal';
+import NicknameChangeModal from '../components/atoms/NicknameChangeModal';
+import { linkGoogleAccount } from '../services/GoogleAuthService';
 // import { CommonActions, useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen({ onLogout, navigation }: { onLogout: () => void; navigation: any }) {
@@ -23,6 +27,9 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
     const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
     const [profileError, setProfileError] = useState('');
+
+    // 모달 상태
+    const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -48,10 +55,10 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 }
 
                 console.log('🌐 [PROFILE] 서버 요청 시작');
-                console.log(`  🔗 API URL: http://localhost:3000/api/auth/account`);
+                console.log(`  🔗 API URL: http://192.168.175.160:3000/api/auth/account`);
                 console.log(`  🔐 Authorization Header: Bearer ${token.substring(0, 20)}...`);
 
-                const res = await fetch('http://localhost:3000/api/auth/account', {
+                const res = await fetch('http://192.168.175.160:3000/api/auth/account', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -61,11 +68,12 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     const data = await res.json();
                     console.log('✅ [PROFILE] 프로필 정보 로딩 성공');
                     console.log(`  👤 이름: ${data.name || 'N/A'}`);
+                    console.log(`  🏷️ 닉네임: ${data.nickname || 'N/A'}`);
                     console.log(`  📧 이메일: ${data.email || 'N/A'}`);
                     console.log(`  🆔 사용자 ID: ${data.userId || 'N/A'}`);
 
                     setProfile({
-                        name: data.name || '알 수 없음',
+                        name: data.nickname || data.name || '알 수 없음',
                         email: data.email || '알 수 없음'
                     });
                 } else {
@@ -122,10 +130,10 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 }
 
                 console.log('🌐 [PROFILE] 서버 요청 시작');
-                console.log(`  🔗 API URL: http://localhost:3000/api/auth/account`);
+                console.log(`  🔗 API URL: http://192.168.175.160:3000/api/auth/account`);
                 console.log(`  🔐 Authorization Header: Bearer ${token.substring(0, 20)}...`);
 
-                const res = await fetch('http://localhost:3000/api/auth/account', {
+                const res = await fetch('http://192.168.175.160:3000/api/auth/account', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -135,11 +143,12 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     const data = await res.json();
                     console.log('✅ [PROFILE] 프로필 정보 로딩 성공');
                     console.log(`  👤 이름: ${data.name || 'N/A'}`);
+                    console.log(`  🏷️ 닉네임: ${data.nickname || 'N/A'}`);
                     console.log(`  📧 이메일: ${data.email || 'N/A'}`);
                     console.log(`  🆔 사용자 ID: ${data.userId || 'N/A'}`);
 
                     setProfile({
-                        name: data.name || '알 수 없음',
+                        name: data.nickname || data.name || '알 수 없음',
                         email: data.email || '알 수 없음'
                     });
                 } else {
@@ -175,10 +184,68 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
         };
     });
 
+    // 무음시간 설정 상태
+    const [quietTimeSettings, setQuietTimeSettings] = useState<QuietTimeSettings | null>(null);
+    const [showQuietTimeModal, setShowQuietTimeModal] = useState(false);
+
+    // 무음시간 설정 로드
+    useEffect(() => {
+        const loadQuietTimeSettings = async () => {
+            try {
+                const savedSettings = await QuietTimeService.loadSettings();
+                setQuietTimeSettings(savedSettings);
+                console.log('🔇 [SETTINGS] 무음시간 설정 로드됨:', savedSettings);
+            } catch (error) {
+                console.error('🔇 [SETTINGS] 무음시간 설정 로드 실패:', error);
+            }
+        };
+
+        loadQuietTimeSettings();
+
+        // 화면이 포커스될 때마다 설정 새로고침
+        const unsubscribe = navigation.addListener('focus', () => {
+            console.log('🔇 [SETTINGS] 화면 포커스 - 무음시간 설정 새로고침');
+            loadQuietTimeSettings();
+        });
+
+        return unsubscribe;
+    }, [navigation]);
+
     // 설정 업데이트 함수
     const updateSetting = (key: string, value: any) => {
         console.log(`🔧 [SETTINGS] 설정 업데이트: ${key} = ${value}`);
         setSettings(prev => ({ ...prev, [key]: value }));
+    };
+
+    // 무음시간 설명 텍스트
+    const getQuietTimeDescription = () => {
+        if (!quietTimeSettings) return '오후 10:00 - 오전 7:00';
+        return QuietTimeService.getDescription(quietTimeSettings);
+    };
+
+    // 무음시간 토글 핸들러
+    const handleQuietTimeToggle = async (value: boolean) => {
+        console.log(`🔇 [QUIET TIME] 토글 변경: ${value}`);
+
+        try {
+            const newSettings = {
+                ...quietTimeSettings,
+                enabled: value
+            };
+
+            await QuietTimeService.saveSettings(newSettings);
+            setQuietTimeSettings(newSettings);
+            console.log('🔇 [QUIET TIME] 설정 저장됨:', newSettings);
+        } catch (error) {
+            console.error('🔇 [QUIET TIME] 설정 저장 실패:', error);
+        }
+    };
+
+    // 무음시간 설정 모달 열기
+    const handleQuietTimePress = () => {
+        if (quietTimeSettings?.enabled) {
+            setShowQuietTimeModal(true);
+        }
     };
 
     // 설정 그룹 컴포넌트
@@ -294,26 +361,19 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
     );
 
     // 핸들러 함수들
-    const handleProfileEdit = () => {
-        console.log('👆 [PROFILE] 프로필 카드 탭됨');
-        refreshProfile(); // 프로필 새로고침
-        Alert.alert('프로필 편집', '프로필 정보를 수정하시겠습니까?');
-    };
 
     const handleSubscription = () => {
         Alert.alert('구독 관리', '구독 옵션을 선택하세요');
     };
 
-    const handleQuietTime = () => {
-        console.log('무음 시간 설정 화면으로 이동');
-    };
-
     const handleQualitySettings = () => {
         console.log('화질 설정 화면으로 이동');
+        navigation.navigate('QualitySettings');
     };
 
     const handleDataRetention = () => {
         console.log('데이터 보관 설정 화면으로 이동');
+        navigation.navigate('DataRetentionSettings');
     };
 
     const handleNetworkSettings = () => {
@@ -344,6 +404,30 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
         );
     };
 
+    const handleGoogleAccountLink = async () => {
+        console.log('==============================');
+        console.log('[GOOGLE LINK] 구글 계정 연결 시작');
+        console.log('==============================');
+
+        try {
+            const result = await linkGoogleAccount();
+
+            if (result.success) {
+                console.log('✅ [GOOGLE LINK] 구글 계정 연결 성공');
+                console.log(`  📝 메시지: ${result.message}`);
+                Alert.alert('연결 완료', 'Google 계정이 성공적으로 연결되었습니다.');
+            } else {
+                console.log('❌ [GOOGLE LINK] 구글 계정 연결 실패');
+                console.log(`  📝 오류: ${result.error}`);
+                Alert.alert('연결 실패', result.error || '구글 계정 연결에 실패했습니다.');
+            }
+        } catch (error) {
+            console.log('❌ [GOOGLE LINK] 네트워크 오류');
+            console.log('  📝 오류 내용:', error);
+            Alert.alert('연결 실패', '구글 계정 연결 중 오류가 발생했습니다.');
+        }
+    };
+
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
             <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
@@ -353,7 +437,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 showsVerticalScrollIndicator={false}
             >
                 {/* 프로필 카드 */}
-                <TouchableOpacity
+                <View
                     style={{
                         backgroundColor: theme.surface,
                         borderRadius: 16,
@@ -366,16 +450,13 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         shadowRadius: 8,
                         elevation: 2,
                     }}
-                    onPress={handleProfileEdit}
                 >
                     <View style={{
-                        width: 56, height: 56, borderRadius: 28,
-                        backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center',
+                        width: 48, height: 48, borderRadius: 24,
+                        backgroundColor: theme.primary + '20', alignItems: 'center', justifyContent: 'center',
                         marginRight: 16,
                     }}>
-                        <Text style={{ color: theme.onPrimary, fontSize: 22, fontFamily: 'GoogleSans-Medium' }}>
-                            {profile?.name ? profile.name.slice(0, 2) : '??'}
-                        </Text>
+                        <Ionicons name="person" size={24} color={theme.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
                         {profileLoading ? (
@@ -384,51 +465,50 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                             <Text style={{ fontSize: 16, color: theme.error }}>{profileError}</Text>
                         ) : (
                             <>
-                                <Text style={{ fontSize: 18, fontFamily: 'GoogleSans-Medium', color: theme.textPrimary }}>{profile?.name}</Text>
-                                <Text style={{ fontSize: 13, color: theme.textSecondary, marginTop: 2 }}>{profile?.email}</Text>
+                                <Text style={{ fontSize: 18, fontFamily: 'GoogleSans-Bold', color: theme.textPrimary, marginBottom: 4 }}>{profile?.name}</Text>
+                                <Text style={{ fontSize: 14, fontFamily: 'GoogleSans-Regular', color: theme.textSecondary }}>{profile?.email}</Text>
                             </>
                         )}
                     </View>
-                    <Ionicons name="chevron-forward" size={22} color={theme.textSecondary} />
-                </TouchableOpacity>
+                </View>
 
                 {/* 내 정보 */}
                 <SettingsGroup title="내 정보">
                     <SettingsItem
-                        icon="shield-checkmark"
+                        icon="person"
                         iconColor={theme.success}
                         iconBg={theme.success + '20'}
-                        label="구독"
-                        description="HomeCam Pro • 2025년 12월까지"
-                        rightElement={
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <View style={{
-                                    backgroundColor: theme.success + '20',
-                                    borderRadius: 12,
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 2
-                                }}>
-                                    <Text style={{
-                                        fontFamily: 'GoogleSans-Medium',
-                                        fontSize: 10,
-                                        color: theme.success
-                                    }}>
-                                        활성
-                                    </Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />
-                            </View>
-                        }
-                        onPress={handleSubscription}
+                        label="닉네임 변경"
+                        description="사용자 닉네임을 변경합니다"
+                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
+                        onPress={() => setNicknameModalVisible(true)}
+                    />
+                    <SettingsItem
+                        icon="lock-closed"
+                        iconColor={theme.success}
+                        iconBg={theme.success + '20'}
+                        label="비밀번호 변경"
+                        description="계정 비밀번호를 변경합니다"
+                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
+                        onPress={() => Alert.alert('준비 중', '비밀번호 변경 기능이 준비 중입니다.')}
                     />
                     <SettingsItem
                         icon="shield-checkmark"
                         iconColor={theme.success}
                         iconBg={theme.success + '20'}
-                        label="2단계 인증"
-                        description="계정 보안을 강화하세요"
+                        label="앱 잠금"
+                        description="앱 실행 시 PIN 또는 생체 인증을 요구합니다"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={() => Alert.alert('2단계 인증', '2단계 인증을 설정하시겠습니까?')}
+                        onPress={() => navigation.navigate('AppLock')}
+                    />
+                    <SettingsItem
+                        icon="logo-google"
+                        iconColor={theme.primary}
+                        iconBg={theme.primary + '20'}
+                        label="구글 계정 연결"
+                        description="Google 계정과 연결하여 빠른 로그인"
+                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
+                        onPress={() => handleGoogleAccountLink()}
                         isLast
                     />
                 </SettingsGroup>
@@ -519,9 +599,19 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         iconColor={theme.warning}
                         iconBg={theme.warning + '20'}
                         label="무음 시간"
-                        description="오후 10:00 - 오전 7:00"
-                        rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={handleQuietTime}
+                        description={getQuietTimeDescription()}
+                        rightElement={
+                            <AnimatedToggleSwitch
+                                value={quietTimeSettings?.enabled || false}
+                                onValueChange={handleQuietTimeToggle}
+                                activeColor={theme.primary}
+                                inactiveColor={theme.outline}
+                                thumbColor={theme.surface}
+                                accessibilityLabel="무음 시간"
+                                accessibilityHint="무음 시간을 켜거나 끕니다"
+                            />
+                        }
+                        onPress={handleQuietTimePress}
                         isLast
                     />
                 </SettingsGroup>
@@ -530,8 +620,8 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 <SettingsGroup title="녹화 및 저장">
                     <SettingsItem
                         icon="videocam"
-                        iconColor={theme.error}
-                        iconBg={theme.error + '20'}
+                        iconColor="#8B5CF6"
+                        iconBg="#8B5CF620"
                         label="자동 녹화"
                         description="움직임 감지 시 자동으로 녹화"
                         rightElement={
@@ -556,8 +646,8 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     />
                     <SettingsItem
                         icon="hardware-chip"
-                        iconColor={theme.error}
-                        iconBg={theme.error + '20'}
+                        iconColor="#8B5CF6"
+                        iconBg="#8B5CF620"
                         label="화질 설정"
                         description="고화질 (1080p)"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -565,8 +655,8 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     />
                     <SettingsItem
                         icon="time"
-                        iconColor={theme.error}
-                        iconBg={theme.error + '20'}
+                        iconColor="#8B5CF6"
+                        iconBg="#8B5CF620"
                         label="데이터 보관"
                         description="30일 동안 녹화본 보관"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -574,8 +664,8 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     />
                     <SettingsItem
                         icon="cloud-upload"
-                        iconColor={theme.error}
-                        iconBg={theme.error + '20'}
+                        iconColor="#8B5CF6"
+                        iconBg="#8B5CF620"
                         label="클라우드 동기화"
                         description="클라우드에 녹화본 백업"
                         rightElement={
@@ -605,8 +695,8 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 <SettingsGroup title="환경설정">
                     <SettingsItem
                         icon="wifi"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
+                        iconColor={theme.primary}
+                        iconBg={theme.primary + '20'}
                         label="네트워크 설정"
                         description="Wi-Fi 및 연결 환경설정"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -619,8 +709,8 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 <SettingsGroup title="지원">
                     <SettingsItem
                         icon="headset"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
                         label="고객 지원"
                         description="도움말 및 지원받기"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
@@ -628,13 +718,13 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     />
                     <SettingsItem
                         icon="information-circle"
-                        iconColor={theme.info}
-                        iconBg={theme.info + '20'}
+                        iconColor={theme.warning}
+                        iconBg={theme.warning + '20'}
                         label="앱 정보"
                         description="버전 1.2.3 (빌드 456)"
                         rightElement={
                             <View style={{
-                                backgroundColor: theme.info + '20',
+                                backgroundColor: theme.warning + '20',
                                 borderRadius: 12,
                                 paddingHorizontal: 8,
                                 paddingVertical: 2
@@ -642,7 +732,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                                 <Text style={{
                                     fontFamily: 'GoogleSans-Medium',
                                     fontSize: 10,
-                                    color: theme.info
+                                    color: theme.warning
                                 }}>
                                     최신
                                 </Text>
@@ -667,6 +757,28 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     />
                 </SettingsGroup>
             </ScrollView>
+
+            {/* 무음시간 설정 모달 */}
+            <QuietTimeModal
+                visible={showQuietTimeModal}
+                onClose={() => setShowQuietTimeModal(false)}
+                onSettingsChange={(newSettings) => {
+                    setQuietTimeSettings(newSettings);
+                    console.log('🔇 [SETTINGS] 무음시간 설정 변경됨:', newSettings);
+                }}
+            />
+
+            {/* 닉네임 변경 모달 */}
+            <NicknameChangeModal
+                visible={nicknameModalVisible}
+                onClose={() => setNicknameModalVisible(false)}
+                onSuccess={() => {
+                    // 프로필 새로고침
+                    refreshProfile();
+                }}
+            />
+
+
         </SafeAreaView>
     );
 }

@@ -16,13 +16,16 @@ import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../pages/LoginScreen';
 import SignupScreen from '../pages/SignupScreen';
+import IntroScreen from '../pages/IntroScreen';
 
 export default function AppNavigator() {
     const { theme } = useTheme();
-    const [activeTab, setActiveTab] = useState<'home' | 'live' | 'recordings' | 'settings' | 'login'>('login');
+    const [activeTab, setActiveTab] = useState<'intro' | 'home' | 'live' | 'recordings' | 'settings' | 'login'>('intro');
     const [moveMode, setMoveMode] = useState(false); // 이동모드 상태 리프팅
     const [showLiveView, setShowLiveView] = useState(false);
     const [showSignup, setShowSignup] = useState(false); // 회원가입 화면 상태
+    const [showFindId, setShowFindId] = useState(false); // 아이디 찾기 화면 상태
+    const [showFindPassword, setShowFindPassword] = useState(false); // 비밀번호 찾기 화면 상태
     const [loading, setLoading] = useState(true); // 초기 로딩 상태
 
     // 화면 전환 애니메이션 값들
@@ -35,9 +38,11 @@ export default function AppNavigator() {
             setLoading(true);
             const token = await AsyncStorage.getItem('token');
             if (token) {
+                // 토큰이 있으면 바로 홈으로, 없으면 인트로로
                 setActiveTab('home');
             } else {
-                setActiveTab('login');
+                // 토큰이 없으면 인트로 스크린부터 시작
+                setActiveTab('intro');
             }
             setLoading(false);
         };
@@ -149,13 +154,31 @@ export default function AppNavigator() {
                             });
                         }}
                         onBackToLogin={() => {
-                            animateScreenTransition('out', () => setShowSignup(false));
+                            animateScreenTransition('out', () => {
+                                setShowSignup(false);
+                                // 로그인 화면으로 돌아갈 때 강제로 리렌더링
+                                setTimeout(() => {
+                                    setActiveTab('login');
+                                    console.log('🔄 [NAVIGATION] 회원가입 → 로그인 화면 전환');
+                                }, 100);
+                            });
                         }}
                     />
                 </Animated.View>
             );
         }
         switch (activeTab) {
+            case 'intro':
+                return (
+                    <IntroScreen
+                        onAnimationComplete={() => {
+                            // 인트로 완료 후 부드러운 전환을 위해 지연
+                            setTimeout(() => {
+                                setActiveTab('login');
+                            }, 300);
+                        }}
+                    />
+                );
             case 'home':
                 return <HomeScreen />;
             case 'live':
@@ -175,6 +198,14 @@ export default function AppNavigator() {
                             onSignup={() => {
                                 animateScreenTransition('out', () => setShowSignup(true));
                             }}
+                            onFindId={() => {
+                                // FindIdScreen 대신 로그인 화면의 모달로 대체
+                                setShowFindId(true);
+                            }}
+                            onFindPassword={() => {
+                                // FindPasswordScreen 대신 로그인 화면의 모달로 대체
+                                setShowFindPassword(true);
+                            }}
                         />
                     </Animated.View>
                 );
@@ -184,13 +215,39 @@ export default function AppNavigator() {
     };
 
     // 로그인/회원가입/인트로에서는 하단탭 숨김
-    const hideTabs = activeTab === 'login' || showSignup;
+    const hideTabs = activeTab === 'login' || activeTab === 'intro' || showSignup || showFindId || showFindPassword;
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             {/* Main Content */}
             <View style={{ flex: 1 }}>
                 {renderScreen()}
+
+                {/* 아이디 찾기 화면 */}
+                {showFindId && (
+                    <Animated.View style={[{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, slideAnimatedStyle]}>
+                        {/* FindIdScreen 대신 로그인 화면의 모달로 대체 */}
+                        <LoginScreen
+                            onBack={() => {
+                                setShowFindId(false);
+                            }}
+                            isFindIdModal={true} // 모달 타입 식별
+                        />
+                    </Animated.View>
+                )}
+
+                {/* 비밀번호 찾기 화면 */}
+                {showFindPassword && (
+                    <Animated.View style={[{ flex: 1, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, slideAnimatedStyle]}>
+                        {/* FindPasswordScreen 대신 로그인 화면의 모달로 대체 */}
+                        <LoginScreen
+                            onBack={() => {
+                                setShowFindPassword(false);
+                            }}
+                            isFindPasswordModal={true} // 모달 타입 식별
+                        />
+                    </Animated.View>
+                )}
             </View>
 
             {/* Bottom Navigation: 로그인/회원가입/인트로에서는 숨김 */}
@@ -251,8 +308,9 @@ export default function AppNavigator() {
                         })}
                     </View>
                 </View>
-            )}
+            )
+            }
             <Toast />
-        </View>
+        </View >
     );
 } 

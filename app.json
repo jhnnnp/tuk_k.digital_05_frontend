@@ -34,6 +34,10 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "tuk.kdigital.login",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -55,7 +59,8 @@
     },
     "plugins": [
       "expo-localization",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-local-authentication"
     ],
     "extra": {
       "googleWebClientId": "706502232476-22nfajuo4f4luvs0n8ofp9h1svjd1s9m.apps.googleusercontent.com",

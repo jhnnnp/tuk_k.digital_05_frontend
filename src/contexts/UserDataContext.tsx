@@ -85,6 +85,10 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
     const loginUser = async (userId: string) => {
         try {
             await userDataService.loginUser(userId);
+
+            // 기존 전역 앱 잠금 설정을 사용자별 설정으로 마이그레이션
+            await userDataService.migrateGlobalAppLockSettings(userId);
+
             await loadUserData(userId);
             dispatch(setUserId(userId));
             console.log(`사용자 ${userId} 로그인 완료`);
