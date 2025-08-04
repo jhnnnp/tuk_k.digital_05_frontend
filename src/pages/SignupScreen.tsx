@@ -26,7 +26,7 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import TermsModal from '../components/atoms/TermsModal';
 import termsData from '../mocks/terms.json';
-// FirebaseAuthService import 제거
+// Firebase 관련 코드 제거됨
 
 // Validation Schema
 const schema = yup.object({
@@ -87,10 +87,8 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const [certVerified, setCertVerified] = useState(false);
     const [termsModalVisible, setTermsModalVisible] = useState(false);
     const [selectedTerms, setSelectedTerms] = useState<{ title: string; content: string } | null>(null);
-    const [mockVerificationCode, setMockVerificationCode] = useState<string>('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const [isMockMode, setIsMockMode] = useState(false); // 인증번호 모킹/실제 API 토글
 
     // 스크롤뷰 참조
     const scrollViewRef = React.useRef<ScrollView>(null);
@@ -161,75 +159,66 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const agreeMarketing = watch('agreeMarketing');
     const allAgree = agreeTerms && agreePrivacy && agreeMicrophone && agreeLocation;
 
-    const BACKEND_BASE_URL = 'http://192.168.175.160:3000'; // 실제 PC의 로컬 IP로 적용
+    const BACKEND_BASE_URL = 'http://192.168.0.8:3000'; // 실제 PC의 로컬 IP로 적용
 
-    // firebaseConfirmation 상태 제거
+    // Firebase 관련 상태 제거됨
 
     const onSendCode = async () => {
         console.log('🔥 [DEBUG] onSendCode 함수 호출됨!');
         console.log('==============================');
         console.log('[SMS] 인증번호 발송 시작');
         console.log(`  📱 휴대폰 번호: ${watch('phone')}`);
-        console.log(`  🔧 모드: ${isMockMode ? 'Mock (데모)' : '실제 API'}`);
         console.log('==============================');
 
         setCertSent(true);
         setTimer(180);
         setCertVerified(false);
 
-        if (isMockMode) {
-            const mockCode = Math.floor(100000 + Math.random() * 900000).toString();
-            setMockVerificationCode(mockCode);
-            console.log('✅ [SMS] Mock 인증번호 발송 성공');
-            console.log(`  🔢 인증번호: ${mockCode}`);
-            console.log('💡 데모 환경: 인증번호를 입력하면 자동으로 다음 단계로 넘어갑니다!');
-        } else {
-            // 실제 API 호출 (Twilio)
-            try {
-                console.log('🌐 [SMS] 실제 API 호출 시작');
+        // 실제 API 호출 (Twilio)
+        try {
+            console.log('🌐 [SMS] 실제 API 호출 시작');
 
-                // E.164 형식으로 변환
-                const e164Phone = toE164Format(watch('phone'));
-                console.log('📱 E.164 형식 변환:', watch('phone'), '→', e164Phone);
+            // 원본 번호 형식 사용 (백엔드에서 처리)
+            const phoneNumber = watch('phone');
+            console.log('📱 원본 번호 사용:', phoneNumber);
 
-                if (!e164Phone) {
-                    console.log('❌ [SMS] 유효하지 않은 휴대폰 번호');
-                    alert('유효하지 않은 휴대폰 번호입니다.');
-                    return;
-                }
-
-                console.log('🌐 [SMS] API 요청 시작');
-                console.log(`  📡 URL: ${BACKEND_BASE_URL}/api/auth/phone/send`);
-                console.log(`  📱 전화번호: ${e164Phone}`);
-                console.log(`  📦 요청 데이터:`, { phone: e164Phone });
-
-                const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: e164Phone })
-                });
-
-                console.log('📡 [SMS] 응답 수신');
-                console.log(`  📊 상태 코드: ${response.status}`);
-                console.log(`  📋 응답 헤더:`, response.headers);
-
-                const data = await response.json();
-                console.log(`  📄 응답 데이터:`, data);
-
-                if (!response.ok) {
-                    console.log('❌ [SMS] 인증번호 발송 실패');
-                    console.log(`  📊 상태 코드: ${response.status}`);
-                    console.log(`  📝 오류 메시지: ${data.error || '인증번호 발송 실패'}`);
-                    alert(data.error || '인증번호 발송 실패');
-                } else {
-                    console.log('✅ [SMS] 인증번호 발송 성공');
-                    console.log('  📱 실제 SMS 발송 완료');
-                }
-            } catch (err) {
-                console.log('❌ [SMS] 네트워크 오류');
-                console.log('  📝 오류 내용:', err);
-                alert('네트워크 오류: 인증번호 발송 실패');
+            if (!phoneNumber || phoneNumber.length < 10) {
+                console.log('❌ [SMS] 유효하지 않은 휴대폰 번호');
+                alert('유효하지 않은 휴대폰 번호입니다.');
+                return;
             }
+
+            console.log('🌐 [SMS] API 요청 시작');
+            console.log(`  📡 URL: ${BACKEND_BASE_URL}/api/auth/phone/send`);
+            console.log(`  📱 전화번호: ${phoneNumber}`);
+            console.log(`  📦 요청 데이터:`, { phone: phoneNumber });
+
+            const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phoneNumber })
+            });
+
+            console.log('📡 [SMS] 응답 수신');
+            console.log(`  📊 상태 코드: ${response.status}`);
+            console.log(`  📋 응답 헤더:`, response.headers);
+
+            const data = await response.json();
+            console.log(`  📄 응답 데이터:`, data);
+
+            if (!response.ok) {
+                console.log('❌ [SMS] 인증번호 발송 실패');
+                console.log(`  📊 상태 코드: ${response.status}`);
+                console.log(`  📝 오류 메시지: ${data.error || '인증번호 발송 실패'}`);
+                alert(data.error || '인증번호 발송 실패');
+            } else {
+                console.log('✅ [SMS] 인증번호 발송 성공');
+                console.log('  📱 실제 SMS 발송 완료');
+            }
+        } catch (err) {
+            console.log('❌ [SMS] 네트워크 오류');
+            console.log('  📝 오류 내용:', err);
+            alert('네트워크 오류: 인증번호 발송 실패');
         }
 
         console.log('🏁 [SMS] 인증번호 발송 프로세스 종료');
@@ -242,54 +231,39 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
         console.log('[VERIFY] 인증번호 검증 시작');
         console.log(`  📱 휴대폰 번호: ${watch('phone')}`);
         console.log(`  🔢 입력한 인증번호: ${code}`);
-        console.log(`  🔧 모드: ${isMockMode ? 'Mock (데모)' : '실제 API'}`);
         console.log('==============================');
 
         if (code && code.length === 6) {
-            if (isMockMode) {
-                // Mock 모드에서 인증번호 검증
-                if (code === mockVerificationCode) {
+            // 실제 API에서 검증
+            try {
+                console.log('🌐 [VERIFY] 실제 API 호출 시작');
+
+                const phoneNumber = watch('phone');
+                const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: phoneNumber,
+                        code: code
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
                     setCertVerified(true);
-                    console.log('✅ [VERIFY] Mock 인증번호 검증 성공!');
+                    console.log('✅ [VERIFY] 실제 인증번호 검증 성공!');
                     console.log('  🎉 휴대폰 인증 완료');
                 } else {
-                    console.log('❌ [VERIFY] 인증번호 불일치');
-                    console.log(`  📱 발송된 인증번호: ${mockVerificationCode}`);
-                    console.log(`  🔢 입력한 인증번호: ${code}`);
-                    alert('인증번호가 일치하지 않습니다.');
+                    console.log('❌ [VERIFY] 인증번호 검증 실패');
+                    console.log(`  📊 상태 코드: ${response.status}`);
+                    console.log(`  📝 오류 메시지: ${data.error || '인증번호가 일치하지 않습니다.'}`);
+                    alert(data.error || '인증번호가 일치하지 않습니다.');
                 }
-            } else {
-                // Twilio/실제 API에서는 백엔드에서 검증
-                try {
-                    console.log('🌐 [VERIFY] 실제 API 호출 시작');
-
-                    const e164Phone = toE164Format(watch('phone'));
-                    const response = await fetch(`${BACKEND_BASE_URL}/api/auth/phone/verify`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            phone: e164Phone,
-                            code: code
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        setCertVerified(true);
-                        console.log('✅ [VERIFY] 실제 인증번호 검증 성공!');
-                        console.log('  🎉 휴대폰 인증 완료');
-                    } else {
-                        console.log('❌ [VERIFY] 인증번호 검증 실패');
-                        console.log(`  📊 상태 코드: ${response.status}`);
-                        console.log(`  📝 오류 메시지: ${data.error || '인증번호가 일치하지 않습니다.'}`);
-                        alert(data.error || '인증번호가 일치하지 않습니다.');
-                    }
-                } catch (err) {
-                    console.log('❌ [VERIFY] 네트워크 오류');
-                    console.log('  📝 오류 내용:', err);
-                    alert('네트워크 오류: 인증번호 검증 실패');
-                }
+            } catch (err) {
+                console.log('❌ [VERIFY] 네트워크 오류');
+                console.log('  📝 오류 내용:', err);
+                alert('네트워크 오류: 인증번호 검증 실패');
             }
         } else {
             console.log('❌ [VERIFY] 인증번호 형식 오류');
@@ -884,7 +858,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                 </View>
                             </View>
 
-                            {/* 스텝 인디케이터 - 완전 새로 작성 */}
+                            {/* 스텝 인디케이터 - 동적 업데이트 */}
                             <View style={{
                                 width: '100%',
                                 maxWidth: 320,
@@ -898,21 +872,24 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                 <View style={{ alignItems: 'center' }}>
                                     <View style={{
                                         width: 40, height: 40, borderRadius: 20,
-                                        backgroundColor: '#29588A',
+                                        backgroundColor: step >= 1 ? '#29588A' : '#F8FAFC',
                                         justifyContent: 'center', alignItems: 'center',
-                                        shadowColor: '#29588A',
+                                        borderWidth: step >= 1 ? 0 : 2,
+                                        borderColor: '#E2E8F0',
+                                        shadowColor: step >= 1 ? '#29588A' : 'transparent',
                                         shadowOffset: { width: 0, height: 3 },
-                                        shadowOpacity: 0.4,
-                                        shadowRadius: 6, elevation: 3
+                                        shadowOpacity: step >= 1 ? 0.4 : 0,
+                                        shadowRadius: 6,
+                                        elevation: step >= 1 ? 3 : 0
                                     }}>
                                         <Text style={{
-                                            color: 'white',
+                                            color: step >= 1 ? 'white' : '#94A3B8',
                                             fontSize: 16,
                                             fontWeight: '700'
                                         }}>1</Text>
                                     </View>
                                     <Text style={{
-                                        color: '#1F2937',
+                                        color: step >= 1 ? '#1F2937' : '#94A3B8',
                                         fontSize: 12,
                                         fontWeight: '600',
                                         marginTop: 8,
@@ -924,19 +901,24 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                 <View style={{ alignItems: 'center' }}>
                                     <View style={{
                                         width: 40, height: 40, borderRadius: 20,
-                                        backgroundColor: '#F8FAFC',
+                                        backgroundColor: step >= 2 ? '#29588A' : '#F8FAFC',
                                         justifyContent: 'center', alignItems: 'center',
-                                        borderWidth: 2,
-                                        borderColor: '#E2E8F0'
+                                        borderWidth: step >= 2 ? 0 : 2,
+                                        borderColor: '#E2E8F0',
+                                        shadowColor: step >= 2 ? '#29588A' : 'transparent',
+                                        shadowOffset: { width: 0, height: 3 },
+                                        shadowOpacity: step >= 2 ? 0.4 : 0,
+                                        shadowRadius: 6,
+                                        elevation: step >= 2 ? 3 : 0
                                     }}>
                                         <Text style={{
-                                            color: '#94A3B8',
+                                            color: step >= 2 ? 'white' : '#94A3B8',
                                             fontSize: 16,
                                             fontWeight: '700'
                                         }}>2</Text>
                                     </View>
                                     <Text style={{
-                                        color: '#94A3B8',
+                                        color: step >= 2 ? '#1F2937' : '#94A3B8',
                                         fontSize: 12,
                                         fontWeight: '600',
                                         marginTop: 8,
@@ -948,19 +930,24 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                 <View style={{ alignItems: 'center' }}>
                                     <View style={{
                                         width: 40, height: 40, borderRadius: 20,
-                                        backgroundColor: '#F8FAFC',
+                                        backgroundColor: step >= 3 ? '#29588A' : '#F8FAFC',
                                         justifyContent: 'center', alignItems: 'center',
-                                        borderWidth: 2,
-                                        borderColor: '#E2E8F0'
+                                        borderWidth: step >= 3 ? 0 : 2,
+                                        borderColor: '#E2E8F0',
+                                        shadowColor: step >= 3 ? '#29588A' : 'transparent',
+                                        shadowOffset: { width: 0, height: 3 },
+                                        shadowOpacity: step >= 3 ? 0.4 : 0,
+                                        shadowRadius: 6,
+                                        elevation: step >= 3 ? 3 : 0
                                     }}>
                                         <Text style={{
-                                            color: '#94A3B8',
+                                            color: step >= 3 ? 'white' : '#94A3B8',
                                             fontSize: 16,
                                             fontWeight: '700'
                                         }}>3</Text>
                                     </View>
                                     <Text style={{
-                                        color: '#94A3B8',
+                                        color: step >= 3 ? '#1F2937' : '#94A3B8',
                                         fontSize: 12,
                                         fontWeight: '600',
                                         marginTop: 8,
@@ -972,19 +959,24 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                 <View style={{ alignItems: 'center' }}>
                                     <View style={{
                                         width: 40, height: 40, borderRadius: 20,
-                                        backgroundColor: '#F8FAFC',
+                                        backgroundColor: step >= 4 ? '#29588A' : '#F8FAFC',
                                         justifyContent: 'center', alignItems: 'center',
-                                        borderWidth: 2,
-                                        borderColor: '#E2E8F0'
+                                        borderWidth: step >= 4 ? 0 : 2,
+                                        borderColor: '#E2E8F0',
+                                        shadowColor: step >= 4 ? '#29588A' : 'transparent',
+                                        shadowOffset: { width: 0, height: 3 },
+                                        shadowOpacity: step >= 4 ? 0.4 : 0,
+                                        shadowRadius: 6,
+                                        elevation: step >= 4 ? 3 : 0
                                     }}>
                                         <Text style={{
-                                            color: '#94A3B8',
+                                            color: step >= 4 ? 'white' : '#94A3B8',
                                             fontSize: 16,
                                             fontWeight: '700'
                                         }}>4</Text>
                                     </View>
                                     <Text style={{
-                                        color: '#94A3B8',
+                                        color: step >= 4 ? '#1F2937' : '#94A3B8',
                                         fontSize: 12,
                                         fontWeight: '600',
                                         marginTop: 8,
@@ -1461,23 +1453,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                                                     letterSpacing: 0.5
                                                 }}>⏱️ 남은 시간: {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}</Text>
                                             </View>
-                                            {__DEV__ && mockVerificationCode && (
-                                                <View style={{
-                                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                                    paddingHorizontal: 12,
-                                                    paddingVertical: 8,
-                                                    borderRadius: 8,
-                                                    marginTop: 8,
-                                                    alignSelf: 'flex-start'
-                                                }}>
-                                                    <Text style={{
-                                                        color: '#10B981',
-                                                        fontSize: 13,
-                                                        fontWeight: '600',
-                                                        letterSpacing: 0.5
-                                                    }}>💡 데모: 인증번호 {mockVerificationCode}</Text>
-                                                </View>
-                                            )}
+
                                         </View>
                                     )}
                                 </View>
@@ -1844,67 +1820,7 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
                             </Animated.View>
                         )}
                     </View>
-                    {/* 개발 모드는 Step 2 (폰 인증)에서만 표시 */}
-                    {step === 2 && (
-                        <View style={{ alignItems: 'center', marginBottom: 16 }}>
-                            <Text style={{ color: '#6B7280', fontSize: 12, marginBottom: 8, fontWeight: '500' }}>개발 모드</Text>
-                            <View style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                backgroundColor: '#F8FAFC',
-                                borderRadius: 8,
-                                padding: 4,
-                                borderWidth: 1,
-                                borderColor: '#E5E7EB'
-                            }}>
-                                <TouchableOpacity
-                                    style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 6,
-                                        borderRadius: 6,
-                                        backgroundColor: isMockMode ? '#10B981' : 'transparent',
-                                        marginRight: 4
-                                    }}
-                                    onPress={() => setIsMockMode(true)}
-                                >
-                                    <Text style={{
-                                        color: isMockMode ? 'white' : '#6B7280',
-                                        fontSize: 12,
-                                        fontWeight: '600'
-                                    }}>💡 Mock</Text>
-                                </TouchableOpacity>
 
-                                <TouchableOpacity
-                                    style={{
-                                        flexDirection: 'row',
-                                        alignItems: 'center',
-                                        paddingHorizontal: 12,
-                                        paddingVertical: 6,
-                                        borderRadius: 6,
-                                        backgroundColor: !isMockMode ? '#29588A' : 'transparent',
-                                        marginLeft: 4
-                                    }}
-                                    onPress={() => setIsMockMode(false)}
-                                >
-                                    <Text style={{
-                                        color: !isMockMode ? 'white' : '#6B7280',
-                                        fontSize: 12,
-                                        fontWeight: '600'
-                                    }}>📱 실제 SMS</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <Text style={{
-                                color: isMockMode ? '#10B981' : '#29588A',
-                                fontSize: 10,
-                                marginTop: 4,
-                                fontWeight: '500'
-                            }}>
-                                {isMockMode ? '💡 데모 환경: 인증번호가 자동으로 생성됩니다' : '📱 실제 SMS 발송 모드'}
-                            </Text>
-                        </View>
-                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
 

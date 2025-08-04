@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     title: {
-        fontSize: 22,
+        fontSize: 19,
         fontFamily: 'GoogleSans-Bold',
         fontWeight: '600',
     },

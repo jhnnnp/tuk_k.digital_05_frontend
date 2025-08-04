@@ -8,7 +8,6 @@ import {
     StatusBar,
     TextInput,
     Alert,
-    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -24,25 +23,23 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../styles/ThemeProvider';
 
-interface NicknameChangeModalProps {
+interface PasswordChangeModalProps {
     visible: boolean;
     onClose: () => void;
     onSuccess?: () => void;
-    currentNickname?: string;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function NicknameChangeModal({
-    visible,
-    onClose,
-    onSuccess,
-    currentNickname = ''
-}: NicknameChangeModalProps) {
+export default function PasswordChangeModal({ visible, onClose, onSuccess }: PasswordChangeModalProps) {
     const { theme } = useTheme();
-    const [nickname, setNickname] = useState(currentNickname);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isValidating, setIsValidating] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // 애니메이션 값들
     const modalScale = useSharedValue(0);
@@ -55,7 +52,6 @@ export default function NicknameChangeModal({
     const buttonScale = useSharedValue(1);
     const cancelButtonScale = useSharedValue(1);
     const confirmButtonScale = useSharedValue(1);
-    const inputScale = useSharedValue(1);
 
     // 모달 표시 애니메이션
     useEffect(() => {
@@ -108,11 +104,6 @@ export default function NicknameChangeModal({
         }
     }, [visible]);
 
-    // 현재 닉네임이 변경되면 입력값 업데이트
-    useEffect(() => {
-        setNickname(currentNickname);
-    }, [currentNickname]);
-
     // 애니메이션 스타일들
     const backgroundAnimatedStyle = useAnimatedStyle(() => ({
         opacity: backgroundOpacity.value,
@@ -145,10 +136,6 @@ export default function NicknameChangeModal({
         transform: [{ translateY: formTranslateY.value }],
     }));
 
-    const inputAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: inputScale.value }],
-    }));
-
     const buttonAnimatedStyle = useAnimatedStyle(() => ({
         transform: [{ scale: buttonScale.value }],
     }));
@@ -169,29 +156,26 @@ export default function NicknameChangeModal({
             withSpring(1, { damping: 15, stiffness: 400 })
         );
         setTimeout(() => {
-            setNickname(currentNickname);
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
             onClose();
         }, 100);
     };
 
     const handleConfirmPress = async () => {
-        if (!nickname.trim()) {
-            Alert.alert('입력 오류', '닉네임을 입력해주세요.');
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            Alert.alert('입력 오류', '모든 필드를 입력해주세요.');
             return;
         }
 
-        if (nickname.trim().length < 2) {
-            Alert.alert('입력 오류', '닉네임은 2자 이상이어야 합니다.');
+        if (newPassword !== confirmPassword) {
+            Alert.alert('비밀번호 오류', '새 비밀번호가 일치하지 않습니다.');
             return;
         }
 
-        if (nickname.trim().length > 20) {
-            Alert.alert('입력 오류', '닉네임은 20자 이하여야 합니다.');
-            return;
-        }
-
-        if (nickname.trim() === currentNickname) {
-            Alert.alert('변경 없음', '동일한 닉네임입니다.');
+        if (newPassword.length < 8) {
+            Alert.alert('비밀번호 오류', '비밀번호는 8자 이상이어야 합니다.');
             return;
         }
 
@@ -203,22 +187,77 @@ export default function NicknameChangeModal({
 
         setIsLoading(true);
 
-        // 실제 닉네임 변경 로직은 여기에 구현
+        // 실제 비밀번호 변경 로직은 여기에 구현
         setTimeout(() => {
             setIsLoading(false);
-            Alert.alert('성공', '닉네임이 성공적으로 변경되었습니다.');
+            Alert.alert('성공', '비밀번호가 성공적으로 변경되었습니다.');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
             onClose();
             onSuccess?.();
         }, 2000);
     };
 
-    const handleInputFocus = () => {
-        inputScale.value = withSpring(1.02, { damping: 15, stiffness: 300 });
-    };
-
-    const handleInputBlur = () => {
-        inputScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-    };
+    const PasswordInput = ({
+        value,
+        onChangeText,
+        placeholder,
+        showPassword,
+        onToggleShow,
+        label,
+    }: {
+        value: string;
+        onChangeText: (text: string) => void;
+        placeholder: string;
+        showPassword: boolean;
+        onToggleShow: () => void;
+        label: string;
+    }) => (
+        <View style={{ marginBottom: 20 }}>
+            <Text style={{
+                fontSize: 14,
+                fontFamily: 'GoogleSans-Medium',
+                color: theme.textPrimary,
+                marginBottom: 8,
+            }}>
+                {label}
+            </Text>
+            <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: theme.outline + '40',
+                borderRadius: 12,
+                backgroundColor: theme.background,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+            }}>
+                <TextInput
+                    style={{
+                        flex: 1,
+                        fontSize: 16,
+                        fontFamily: 'GoogleSans-Regular',
+                        color: theme.textPrimary,
+                    }}
+                    value={value}
+                    onChangeText={onChangeText}
+                    placeholder={placeholder}
+                    placeholderTextColor={theme.textSecondary}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                />
+                <TouchableOpacity onPress={onToggleShow}>
+                    <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={20}
+                        color={theme.textSecondary}
+                    />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 
     if (!visible) return null;
 
@@ -282,7 +321,7 @@ export default function NicknameChangeModal({
                             ]}
                         >
                             <LinearGradient
-                                colors={[theme.success + '20', theme.success + '10']}
+                                colors={[theme.primary + '20', theme.primary + '10']}
                                 style={{
                                     width: '100%',
                                     height: '100%',
@@ -292,9 +331,9 @@ export default function NicknameChangeModal({
                                 }}
                             >
                                 <Ionicons
-                                    name="person"
+                                    name="lock-closed"
                                     size={36}
-                                    color={theme.success}
+                                    color={theme.primary}
                                 />
                             </LinearGradient>
                         </Animated.View>
@@ -307,7 +346,7 @@ export default function NicknameChangeModal({
                             marginBottom: 8,
                             textAlign: 'center',
                         }}>
-                            닉네임 변경
+                            비밀번호 변경
                         </Text>
                         <Text style={{
                             fontSize: 16,
@@ -316,100 +355,55 @@ export default function NicknameChangeModal({
                             textAlign: 'center',
                             lineHeight: 24,
                         }}>
-                            새로운 닉네임으로 프로필을 업데이트하세요
+                            안전한 비밀번호로 계정을 보호하세요
                         </Text>
                     </View>
 
                     {/* 폼 */}
                     <Animated.View style={formAnimatedStyle}>
-                        {/* 현재 닉네임 표시 */}
-                        {currentNickname && (
-                            <View style={{
-                                backgroundColor: theme.background,
-                                borderRadius: 12,
-                                padding: 16,
-                                marginBottom: 20,
-                                borderWidth: 1,
-                                borderColor: theme.outline + '20',
-                            }}>
-                                <Text style={{
-                                    fontSize: 12,
-                                    fontFamily: 'GoogleSans-Medium',
-                                    color: theme.textSecondary,
-                                    marginBottom: 4,
-                                }}>
-                                    현재 닉네임
-                                </Text>
-                                <Text style={{
-                                    fontSize: 16,
-                                    fontFamily: 'GoogleSans-Medium',
-                                    color: theme.textPrimary,
-                                }}>
-                                    {currentNickname}
-                                </Text>
-                            </View>
-                        )}
+                        <PasswordInput
+                            value={currentPassword}
+                            onChangeText={setCurrentPassword}
+                            placeholder="현재 비밀번호"
+                            showPassword={showCurrentPassword}
+                            onToggleShow={() => setShowCurrentPassword(!showCurrentPassword)}
+                            label="현재 비밀번호"
+                        />
 
-                        {/* 새 닉네임 입력 */}
-                        <View style={{ marginBottom: 20 }}>
-                            <Text style={{
-                                fontSize: 14,
-                                fontFamily: 'GoogleSans-Medium',
-                                color: theme.textPrimary,
-                                marginBottom: 8,
-                            }}>
-                                새 닉네임
-                            </Text>
-                            <Animated.View style={inputAnimatedStyle}>
-                                <TextInput
-                                    style={{
-                                        borderWidth: 2,
-                                        borderColor: theme.outline + '40',
-                                        borderRadius: 12,
-                                        backgroundColor: theme.background,
-                                        paddingHorizontal: 16,
-                                        paddingVertical: 12,
-                                        fontSize: 16,
-                                        fontFamily: 'GoogleSans-Regular',
-                                        color: theme.textPrimary,
-                                    }}
-                                    value={nickname}
-                                    onChangeText={setNickname}
-                                    placeholder="새 닉네임을 입력하세요"
-                                    placeholderTextColor={theme.textSecondary}
-                                    onFocus={handleInputFocus}
-                                    onBlur={handleInputBlur}
-                                    maxLength={20}
-                                    autoCapitalize="words"
-                                    autoCorrect={false}
-                                />
-                            </Animated.View>
-                            <Text style={{
-                                fontSize: 12,
-                                fontFamily: 'GoogleSans-Regular',
-                                color: theme.textSecondary,
-                                marginTop: 4,
-                            }}>
-                                {nickname.length}/20자
-                            </Text>
-                        </View>
+                        <PasswordInput
+                            value={newPassword}
+                            onChangeText={setNewPassword}
+                            placeholder="새 비밀번호 (8자 이상)"
+                            showPassword={showNewPassword}
+                            onToggleShow={() => setShowNewPassword(!showNewPassword)}
+                            label="새 비밀번호"
+                        />
 
-                        {/* 가이드라인 */}
+                        <PasswordInput
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            placeholder="새 비밀번호 확인"
+                            showPassword={showConfirmPassword}
+                            onToggleShow={() => setShowConfirmPassword(!showConfirmPassword)}
+                            label="새 비밀번호 확인"
+                        />
+
+                        {/* 보안 팁 */}
                         <View style={{
-                            backgroundColor: theme.success + '10',
+                            backgroundColor: theme.primary + '10',
                             borderRadius: 12,
                             padding: 16,
                             marginBottom: 24,
                         }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                                <Ionicons name="information-circle" size={16} color={theme.success} />
+                                <Ionicons name="shield-checkmark" size={16} color={theme.primary} />
                                 <Text style={{
                                     fontSize: 14,
                                     fontFamily: 'GoogleSans-Medium',
-                                    color: theme.success,
+                                    color: theme.primary,
                                     marginLeft: 8,
                                 }}>
-                                    닉네임 가이드라인
+                                    보안 팁
                                 </Text>
                             </View>
                             <Text style={{
@@ -418,9 +412,9 @@ export default function NicknameChangeModal({
                                 color: theme.textSecondary,
                                 lineHeight: 18,
                             }}>
-                                • 2-20자 사이로 입력해주세요{'\n'}
-                                • 특수문자 사용 가능합니다{'\n'}
-                                • 다른 사용자와 중복될 수 있습니다
+                                • 8자 이상의 영문, 숫자, 특수문자 조합을 권장합니다{'\n'}
+                                • 생년월일이나 전화번호는 사용하지 마세요{'\n'}
+                                • 정기적으로 비밀번호를 변경하세요
                             </Text>
                         </View>
                     </Animated.View>
@@ -481,7 +475,7 @@ export default function NicknameChangeModal({
                                 disabled={isLoading}
                             >
                                 <LinearGradient
-                                    colors={[theme.success, theme.success + 'DD']}
+                                    colors={[theme.primary, theme.primary + 'DD']}
                                     style={{
                                         position: 'absolute',
                                         top: 0,
@@ -493,7 +487,7 @@ export default function NicknameChangeModal({
                                 />
                                 {isLoading ? (
                                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                        <ActivityIndicator size="small" color={theme.onPrimary} />
+                                        <Ionicons name="refresh" size={16} color={theme.onPrimary} />
                                         <Text
                                             style={{
                                                 fontSize: 16,

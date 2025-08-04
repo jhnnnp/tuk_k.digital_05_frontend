@@ -16,6 +16,11 @@ import AnimatedToggleSwitch from '../components/atoms/AnimatedToggleSwitch';
 import { QuietTimeService, QuietTimeSettings } from '../services/QuietTimeService';
 import QuietTimeModal from '../components/atoms/QuietTimeModal';
 import NicknameChangeModal from '../components/atoms/NicknameChangeModal';
+import LogoutModal from '../components/atoms/LogoutModal';
+import PasswordChangeModal from '../components/atoms/PasswordChangeModal';
+import QualitySettingsModal from '../components/atoms/QualitySettingsModal';
+import DataRetentionModal from '../components/atoms/DataRetentionModal';
+import AppInfoModal from '../components/atoms/AppInfoModal';
 import { linkGoogleAccount } from '../services/GoogleAuthService';
 // import { CommonActions, useNavigation } from '@react-navigation/native';
 
@@ -30,6 +35,11 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
 
     // 모달 상태
     const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
+    const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+    const [passwordChangeModalVisible, setPasswordChangeModalVisible] = useState(false);
+    const [qualitySettingsModalVisible, setQualitySettingsModalVisible] = useState(false);
+    const [dataRetentionModalVisible, setDataRetentionModalVisible] = useState(false);
+    const [appInfoModalVisible, setAppInfoModalVisible] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -386,22 +396,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
     };
 
     const handleAppInfo = () => {
-        Alert.alert('앱 정보', '버전: 1.2.3\n빌드: 456\n\n© 2025 TIBO HomeCam');
-    };
-
-    const handleLogout = () => {
-        Alert.alert(
-            '로그아웃',
-            '정말 로그아웃하시겠습니까?',
-            [
-                { text: '취소', style: 'cancel' },
-                {
-                    text: '로그아웃',
-                    style: 'destructive',
-                    onPress: onLogout
-                }
-            ]
-        );
+        setAppInfoModalVisible(true);
     };
 
     const handleGoogleAccountLink = async () => {
@@ -490,7 +485,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         label="비밀번호 변경"
                         description="계정 비밀번호를 변경합니다"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={() => Alert.alert('준비 중', '비밀번호 변경 기능이 준비 중입니다.')}
+                        onPress={() => setPasswordChangeModalVisible(true)}
                     />
                     <SettingsItem
                         icon="shield-checkmark"
@@ -651,7 +646,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         label="화질 설정"
                         description="고화질 (1080p)"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={handleQualitySettings}
+                        onPress={() => setQualitySettingsModalVisible(true)}
                     />
                     <SettingsItem
                         icon="time"
@@ -660,7 +655,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         label="데이터 보관"
                         description="30일 동안 녹화본 보관"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={handleDataRetention}
+                        onPress={() => setDataRetentionModalVisible(true)}
                     />
                     <SettingsItem
                         icon="cloud-upload"
@@ -752,7 +747,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         label="로그아웃"
                         description="계정에서 안전하게 로그아웃"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
-                        onPress={handleLogout}
+                        onPress={() => setLogoutModalVisible(true)}
                         isLast
                     />
                 </SettingsGroup>
@@ -776,6 +771,52 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     // 프로필 새로고침
                     refreshProfile();
                 }}
+            />
+
+            {/* 비밀번호 변경 모달 */}
+            <PasswordChangeModal
+                visible={passwordChangeModalVisible}
+                onClose={() => setPasswordChangeModalVisible(false)}
+                onSuccess={() => {
+                    // 프로필 새로고침
+                    refreshProfile();
+                }}
+            />
+
+            {/* 화질 설정 모달 */}
+            <QualitySettingsModal
+                visible={qualitySettingsModalVisible}
+                onClose={() => setQualitySettingsModalVisible(false)}
+                onConfirm={(quality) => {
+                    // 화질 설정 변경 시 실제 앱 설정 업데이트
+                    console.log('🎥 [QUALITY SETTINGS] 화질 설정 변경됨:', quality);
+                }}
+                currentQuality="720p"
+            />
+
+            {/* 데이터 보관 설정 모달 */}
+            <DataRetentionModal
+                visible={dataRetentionModalVisible}
+                onClose={() => setDataRetentionModalVisible(false)}
+                onConfirm={(days) => {
+                    // 데이터 보관 설정 변경 시 실제 앱 설정 업데이트
+                    console.log('📦 [DATA RETENTION] 데이터 보관 설정 변경됨:', days);
+                }}
+                currentRetention="30"
+            />
+
+            {/* 앱 정보 모달 */}
+            <AppInfoModal
+                visible={appInfoModalVisible}
+                onClose={() => setAppInfoModalVisible(false)}
+            />
+
+            {/* 로그아웃 모달 */}
+            <LogoutModal
+                visible={logoutModalVisible}
+                onClose={() => setLogoutModalVisible(false)}
+                onConfirm={onLogout}
+                userName={profile?.name || '사용자'}
             />
 
 

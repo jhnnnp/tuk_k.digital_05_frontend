@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "K-Digital",
-    "slug": "K-Digital",
+    "name": "TIBO",
+    "slug": "TIBO",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,6 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "icon": "./assets/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "tuk.kdigital.login",
       "infoPlist": {

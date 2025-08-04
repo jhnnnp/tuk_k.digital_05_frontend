@@ -7,8 +7,6 @@ import NetworkSettingsScreen from '../screens/settings/NetworkSettingsScreen';
 import WiFiSettingsScreen from '../screens/settings/WiFiSettingsScreen';
 import MobileDataSettingsScreen from '../screens/settings/MobileDataSettingsScreen';
 import QuietTimeSettingsScreen from '../screens/settings/QuietTimeSettingsScreen';
-import DataRetentionSettingsScreen from '../screens/settings/DataRetentionSettingsScreen';
-import QualitySettingsScreen from '../screens/settings/QualitySettingsScreen';
 
 const Stack = createStackNavigator();
 
@@ -38,14 +36,6 @@ export default function SettingsStackNavigator({ onLogout }: { onLogout: () => v
             <Stack.Screen
                 name="QuietTimeSettings"
                 component={QuietTimeSettingsScreen}
-            />
-            <Stack.Screen
-                name="DataRetentionSettings"
-                component={DataRetentionSettingsScreen}
-            />
-            <Stack.Screen
-                name="QualitySettings"
-                component={QualitySettingsScreen}
             />
 
             <Stack.Screen

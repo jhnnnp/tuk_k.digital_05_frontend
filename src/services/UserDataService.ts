@@ -346,6 +346,55 @@ class UserDataService {
             return [];
         }
     }
+
+    // 앱 잠금 설정 저장
+    async saveAppLockSettings(userId: string, settings: {
+        appLockEnabled: boolean;
+        biometricEnabled: boolean;
+        pinEnabled: boolean;
+        currentPin: string;
+    }): Promise<void> {
+        try {
+            const key = this.getUserKey(userId, 'appLockSettings');
+            await AsyncStorage.setItem(key, JSON.stringify(settings));
+            console.log(`사용자 ${userId} 앱 잠금 설정 저장 완료:`, settings);
+        } catch (error) {
+            console.error('앱 잠금 설정 저장 실패:', error);
+            throw new Error('앱 잠금 설정 저장에 실패했습니다.');
+        }
+    }
+
+    // 앱 잠금 설정 불러오기
+    async getAppLockSettings(userId: string): Promise<{
+        appLockEnabled: boolean;
+        biometricEnabled: boolean;
+        pinEnabled: boolean;
+        currentPin: string;
+    } | null> {
+        try {
+            const key = this.getUserKey(userId, 'appLockSettings');
+            const value = await AsyncStorage.getItem(key);
+            return value ? JSON.parse(value) : null;
+        } catch (error) {
+            console.error('앱 잠금 설정 불러오기 실패:', error);
+            return null;
+        }
+    }
+
+    // 기존 전역 앱 잠금 설정을 사용자별 설정으로 마이그레이션
+    async migrateGlobalAppLockSettings(userId: string): Promise<void> {
+        try {
+            const globalSettings = await AsyncStorage.getItem('appLockSettings');
+            if (globalSettings) {
+                const settings = JSON.parse(globalSettings);
+                await this.saveAppLockSettings(userId, settings);
+                await AsyncStorage.removeItem('appLockSettings');
+                console.log(`사용자 ${userId} 전역 앱 잠금 설정 마이그레이션 완료`);
+            }
+        } catch (error) {
+            console.error('앱 잠금 설정 마이그레이션 실패:', error);
+        }
+    }
 }
 
 export const userDataService = new UserDataService(); 

@@ -84,14 +84,6 @@ export default ({ config }) => ({
             }
         ],
         [
-            'expo-notifications',
-            {
-                icon: './assets/notification-icon.png',
-                color: '#4A90E2',
-                sounds: ['./assets/notification-sound.wav']
-            }
-        ],
-        [
             'expo-splash-screen',
             {
                 image: './assets/icon.png',
