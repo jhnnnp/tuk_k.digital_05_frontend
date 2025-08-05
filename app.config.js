@@ -32,7 +32,17 @@ export default ({ config }) => ({
                 'remote-notification'
             ],
             UIRequiresPersistentWiFi: true,
-            UIStatusBarStyle: 'light-content'
+            UIStatusBarStyle: 'light-content',
+            // ATS 예외: 개발용 HTTP 통신 허용
+            NSAppTransportSecurity: {
+                NSAllowsArbitraryLoads: true,
+                NSExceptionDomains: {
+                    '192.168.0.8': {
+                        NSExceptionAllowsInsecureHTTPLoads: true,
+                        NSIncludesSubdomains: true,
+                    },
+                },
+            },
         },
         associatedDomains: [
             'applinks:tibo.com'

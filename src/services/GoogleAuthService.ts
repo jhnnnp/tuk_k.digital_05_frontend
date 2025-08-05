@@ -1,8 +1,17 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { API_BASE_URL } from '../config/api';
 
-// API 설정
-const API_BASE_URL = 'http://localhost:3000/api';
+// 콜백 URL: API_BASE_URL 의 '/api' 제거 후 사용
+const CALLBACK_BASE = API_BASE_URL.replace('/api', '');
+const getCallbackUrl = () => `${CALLBACK_BASE}/auth/google/callback`;
+
+// 디버깅 로그
+if (__DEV__) {
+    console.log('🔧 [GOOGLE AUTH]');
+    console.log(`  🌐 API_BASE_URL: ${API_BASE_URL}`);
+    console.log(`  🔗 CALLBACK_URL: ${getCallbackUrl()}`);
+}
 
 // 웹 클라이언트 ID만 사용 (개발용)
 const getGoogleClientId = () => {
@@ -44,7 +53,7 @@ export const signInWithGoogle = async () => {
 
             const result = await WebBrowser.openAuthSessionAsync(
                 data.authUrl,
-                'http://localhost:3000/auth/google/callback'
+                getCallbackUrl()
             );
 
             console.log('🔍 [GOOGLE AUTH] WebBrowser 결과');
@@ -243,7 +252,7 @@ export const linkGoogleAccount = async () => {
 
             const result = await WebBrowser.openAuthSessionAsync(
                 authUrlWithMode,
-                'http://localhost:3000/auth/google/callback'
+                getCallbackUrl()
             );
 
             console.log('🔍 [GOOGLE AUTH] WebBrowser 결과 (연결 모드)');
