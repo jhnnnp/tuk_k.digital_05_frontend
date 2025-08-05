@@ -22,6 +22,7 @@ import QualitySettingsModal from '../components/atoms/QualitySettingsModal';
 import DataRetentionModal from '../components/atoms/DataRetentionModal';
 import AppInfoModal from '../components/atoms/AppInfoModal';
 import { linkGoogleAccount } from '../services/GoogleAuthService';
+import { API_BASE_URL } from '../config/api';
 // import { CommonActions, useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen({ onLogout, navigation }: { onLogout: () => void; navigation: any }) {
@@ -65,10 +66,10 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 }
 
                 console.log('🌐 [PROFILE] 서버 요청 시작');
-                console.log(`  🔗 API URL: http://192.168.175.160:3000/api/auth/account`);
+                console.log(`  🔗 API URL: ${API_BASE_URL}/auth/account`);
                 console.log(`  🔐 Authorization Header: Bearer ${token.substring(0, 20)}...`);
 
-                const res = await fetch('http://192.168.175.160:3000/api/auth/account', {
+                const res = await fetch(`${API_BASE_URL}/auth/account`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -81,6 +82,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                     console.log(`  🏷️ 닉네임: ${data.nickname || 'N/A'}`);
                     console.log(`  📧 이메일: ${data.email || 'N/A'}`);
                     console.log(`  🆔 사용자 ID: ${data.userId || 'N/A'}`);
+                    console.log(`  📦 전체 응답 데이터:`, JSON.stringify(data, null, 2));
 
                     setProfile({
                         name: data.nickname || data.name || '알 수 없음',
@@ -140,10 +142,10 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 }
 
                 console.log('🌐 [PROFILE] 서버 요청 시작');
-                console.log(`  🔗 API URL: http://192.168.175.160:3000/api/auth/account`);
+                console.log(`  🔗 API URL: ${API_BASE_URL}/auth/account`);
                 console.log(`  🔐 Authorization Header: Bearer ${token.substring(0, 20)}...`);
 
-                const res = await fetch('http://192.168.175.160:3000/api/auth/account', {
+                const res = await fetch(`${API_BASE_URL}/auth/account`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -768,6 +770,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 visible={nicknameModalVisible}
                 onClose={() => setNicknameModalVisible(false)}
                 onSuccess={() => {
+                    console.log('🔄 [SETTINGS] 닉네임 변경 성공 - 프로필 새로고침 시작');
                     // 프로필 새로고침
                     refreshProfile();
                 }}

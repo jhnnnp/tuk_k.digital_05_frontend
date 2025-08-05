@@ -36,6 +36,7 @@ import { signInWithGoogle } from '../services/GoogleAuthService';
 import GoogleLogo from '../components/atoms/GoogleLogo';
 import FindIdModal from '../components/atoms/FindIdModal';
 import FindPasswordModal from '../components/atoms/FindPasswordModal';
+import { API_BASE_URL } from '../config/api';
 
 interface LoginScreenProps {
     onLoginSuccess: () => void;
@@ -124,7 +125,7 @@ export default function LoginScreen({ onLoginSuccess, onSignup, onFindId, onFind
         setLoading(true);
         try {
             console.log('🌐 [LOGIN] 서버 요청 시작');
-            const res = await fetch('http://192.168.175.160:3000/api/auth/login', {
+            const res = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })

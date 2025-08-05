@@ -26,6 +26,7 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import TermsModal from '../components/atoms/TermsModal';
 import termsData from '../mocks/terms.json';
+import { API_BASE_URL } from '../config/api';
 // Firebase 관련 코드 제거됨
 
 // Validation Schema
@@ -159,7 +160,8 @@ export default function SignupScreen({ onBackToLogin }: { onBackToLogin?: () => 
     const agreeMarketing = watch('agreeMarketing');
     const allAgree = agreeTerms && agreePrivacy && agreeMicrophone && agreeLocation;
 
-    const BACKEND_BASE_URL = 'http://192.168.0.8:3000'; // 실제 PC의 로컬 IP로 적용
+    // 백엔드 API 기본 URL (자동 감지)
+    const BACKEND_BASE_URL = API_BASE_URL.replace('/api', '');
 
     // Firebase 관련 상태 제거됨
 
