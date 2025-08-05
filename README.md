@@ -1,4 +1,4 @@
-# TIBO - Apple-inspired Robo-Camera Management App
+# TIBO - Robo-Camera Management App
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.79.5-blue.svg)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-53.0.20-blue.svg)](https://expo.dev/)
