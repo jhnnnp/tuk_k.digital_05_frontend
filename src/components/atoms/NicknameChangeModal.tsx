@@ -23,6 +23,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../styles/ThemeProvider';
+import { API_BASE_URL } from '../../config/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface NicknameChangeModalProps {
     visible: boolean;
@@ -203,13 +205,51 @@ export default function NicknameChangeModal({
 
         setIsLoading(true);
 
-        // 실제 닉네임 변경 로직은 여기에 구현
-        setTimeout(() => {
-            setIsLoading(false);
+        try {
+            // 액세스 토큰 가져오기
+            const accessToken = await AsyncStorage.getItem('token');
+            if (!accessToken) {
+                throw new Error('로그인이 필요합니다.');
+            }
+
+            console.log('🔗 [NICKNAME CHANGE] API 호출 시작');
+            console.log(`  🌐 URL: ${API_BASE_URL}/profile`);
+            console.log(`  📝 새 닉네임: ${nickname.trim()}`);
+
+            const response = await fetch(`${API_BASE_URL}/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                    nickname: nickname.trim()
+                }),
+            });
+
+            console.log(`  📊 응답 상태: ${response.status}`);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.log(`  ❌ 에러 응답:`, errorData);
+                throw new Error(errorData.error || '닉네임 변경에 실패했습니다.');
+            }
+
+            const result = await response.json();
+            console.log(`  ✅ 성공 응답:`, result);
+
+            // 성공 처리
             Alert.alert('성공', '닉네임이 성공적으로 변경되었습니다.');
             onClose();
             onSuccess?.();
-        }, 2000);
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : '닉네임 변경 중 오류가 발생했습니다.';
+            console.log(`  ❌ 에러 발생: ${errorMessage}`);
+            Alert.alert('오류', errorMessage);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleInputFocus = () => {
