@@ -25,6 +25,7 @@ import { BlurView } from 'expo-blur';
 import { useTheme } from '../../styles/ThemeProvider';
 import { isValidEmail } from '../../utils/validation';
 import ModalStyles from '../../styles/ModalStyles';
+import { API_BASE_URL } from '../../config/api';
 
 interface FindPasswordModalProps {
     visible: boolean;
@@ -89,7 +90,7 @@ export default function FindPasswordModal({ visible, onClose }: FindPasswordModa
         setLoading(true);
 
         try {
-            const response = await fetch('http://192.168.175.160:3000/api/auth/find-password/send-code', {
+            const response = await fetch(`${API_BASE_URL}/auth/find-password/send-code`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -137,7 +138,7 @@ export default function FindPasswordModal({ visible, onClose }: FindPasswordModa
         setLoading(true);
 
         try {
-            const response = await fetch('http://192.168.175.160:3000/api/auth/find-password/reset', {
+            const response = await fetch(`${API_BASE_URL}/auth/find-password/reset`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -24,6 +24,7 @@ import Animated, {
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../styles/ThemeProvider';
 import ModalStyles from '../../styles/ModalStyles';
+import { API_BASE_URL } from '../../config/api';
 
 interface FindIdModalProps {
     visible: boolean;
@@ -97,7 +98,7 @@ export default function FindIdModal({ visible, onClose }: FindIdModalProps) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://192.168.175.160:3000/api/auth/phone/send', {
+            const response = await fetch(`${API_BASE_URL}/auth/phone/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -131,7 +132,7 @@ export default function FindIdModal({ visible, onClose }: FindIdModalProps) {
 
         try {
             const cleanPhone = phone.replace(/[^0-9]/g, '');
-            const response = await fetch('http://192.168.175.160:3000/api/auth/find-id', {
+            const response = await fetch(`${API_BASE_URL}/auth/find-id`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
