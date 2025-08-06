@@ -2,26 +2,28 @@ import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
     Modal,
-    Dimensions,
     StatusBar,
-    Linking,
+    StyleSheet,
+    Dimensions,
+    Platform,
     Alert,
+    Linking,
+    Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
     withTiming,
-    withSequence,
     interpolate,
     Extrapolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../../styles/ThemeProvider';
 
 interface AppInfoModalProps {
@@ -29,485 +31,446 @@ interface AppInfoModalProps {
     onClose: () => void;
 }
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function AppInfoModal({ visible, onClose }: AppInfoModalProps) {
     const { theme } = useTheme();
-    const [isLoading, setIsLoading] = useState(false);
-    const [showCopyToast, setShowCopyToast] = useState(false);
+    const [toastVisible, setToastVisible] = useState(false);
 
-    // 애니메이션 값들
+    // Enhanced animations
+    const backdropOpacity = useSharedValue(0);
     const modalScale = useSharedValue(0);
+    const modalTranslateY = useSharedValue(100);
     const modalOpacity = useSharedValue(0);
-    const backgroundOpacity = useSharedValue(0);
-    const contentOpacity = useSharedValue(0);
-    const contentTranslateY = useSharedValue(30);
-    const buttonScale = useSharedValue(1);
-    const githubButtonScale = useSharedValue(1);
-    const emailButtonScale = useSharedValue(1);
-    const toastScale = useSharedValue(0);
     const toastOpacity = useSharedValue(0);
+    const toastScale = useSharedValue(0);
 
-    // 모달 표시 애니메이션
     useEffect(() => {
         if (visible) {
-            // 배경 페이드인
-            backgroundOpacity.value = withTiming(1, { duration: 200 });
+            // Backdrop fade in
+            backdropOpacity.value = withTiming(1, { duration: 300 });
 
-            // 모달 스케일 애니메이션
+            // Modal slide up and scale
+            modalTranslateY.value = withSpring(0, {
+                damping: 20,
+                stiffness: 300,
+                mass: 0.8,
+            });
             modalScale.value = withSpring(1, {
                 damping: 20,
                 stiffness: 300,
                 mass: 0.8,
             });
-
-            // 모달 투명도
-            modalOpacity.value = withTiming(1, { duration: 300 });
-
-
-
-            // 콘텐츠 애니메이션
-            setTimeout(() => {
-                contentOpacity.value = withTiming(1, { duration: 400 });
-                contentTranslateY.value = withSpring(0, {
-                    damping: 20,
-                    stiffness: 200,
-                });
-            }, 200);
+            modalOpacity.value = withTiming(1, { duration: 400 });
         } else {
-            // 모달 숨김 애니메이션
-            backgroundOpacity.value = withTiming(0, { duration: 200 });
-            modalScale.value = withSpring(0, {
+            // Backdrop fade out
+            backdropOpacity.value = withTiming(0, { duration: 200 });
+
+            // Modal slide down and scale down
+            modalTranslateY.value = withSpring(100, {
+                damping: 20,
+                stiffness: 300,
+            });
+            modalScale.value = withSpring(0.8, {
                 damping: 20,
                 stiffness: 300,
             });
             modalOpacity.value = withTiming(0, { duration: 200 });
-            contentOpacity.value = withTiming(0, { duration: 200 });
-            contentTranslateY.value = withTiming(30, { duration: 200 });
         }
     }, [visible]);
 
-    // 애니메이션 스타일들
-    const backgroundAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: backgroundOpacity.value,
+    const backdropStyle = useAnimatedStyle(() => ({
+        opacity: backdropOpacity.value,
     }));
 
-    const modalAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: modalOpacity.value,
-        transform: [
-            { scale: modalScale.value },
-            {
-                translateY: interpolate(
-                    modalScale.value,
-                    [0, 1],
-                    [50, 0],
-                    Extrapolate.CLAMP
-                ),
-            },
-        ],
-    }));
+    const modalStyle = useAnimatedStyle(() => {
+        const scale = interpolate(
+            modalScale.value,
+            [0, 1],
+            [0.8, 1],
+            Extrapolate.CLAMP
+        );
 
+        return {
+            opacity: modalOpacity.value,
+            transform: [
+                { translateY: modalTranslateY.value },
+                { scale },
+            ],
+        };
+    });
 
-
-    const contentAnimatedStyle = useAnimatedStyle(() => ({
-        opacity: contentOpacity.value,
-        transform: [{ translateY: contentTranslateY.value }],
-    }));
-
-    const buttonAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: buttonScale.value }],
-    }));
-
-    const githubButtonAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: githubButtonScale.value }],
-    }));
-
-    const emailButtonAnimatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: emailButtonScale.value }],
-    }));
-
-    const toastAnimatedStyle = useAnimatedStyle(() => ({
+    const toastStyle = useAnimatedStyle(() => ({
         opacity: toastOpacity.value,
         transform: [{ scale: toastScale.value }],
     }));
 
-    // 버튼 터치 핸들러
-    const handleClosePress = () => {
+    const handleClose = () => {
         Haptics.selectionAsync();
-        buttonScale.value = withSequence(
-            withSpring(0.95, { damping: 15, stiffness: 400 }),
-            withSpring(1, { damping: 15, stiffness: 400 })
-        );
-        setTimeout(onClose, 100);
+        onClose();
     };
 
-    const handleGithubPress = async () => {
-        Haptics.selectionAsync();
-        githubButtonScale.value = withSequence(
-            withSpring(0.95, { damping: 15, stiffness: 400 }),
-            withSpring(1, { damping: 15, stiffness: 400 })
-        );
-
+    const handleGitHub = async () => {
         try {
             await Linking.openURL('https://github.com/jhnnnp');
-        } catch (error) {
-            console.error('GitHub 링크 열기 실패:', error);
+        } catch {
+            Alert.alert('오류', 'GitHub를 열 수 없습니다.');
         }
     };
 
-    const handleEmailPress = async () => {
-        Haptics.selectionAsync();
-        emailButtonScale.value = withSequence(
-            withSpring(0.95, { damping: 15, stiffness: 400 }),
-            withSpring(1, { damping: 15, stiffness: 400 })
-        );
-
+    const handleEmail = async () => {
         try {
             await Clipboard.setStringAsync('jhnnn.park@gmail.com');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-            // 토스트 표시
-            setShowCopyToast(true);
-            toastScale.value = withSpring(1, {
-                damping: 20,
-                stiffness: 300,
-                mass: 0.8,
-            });
-            toastOpacity.value = withTiming(1, { duration: 200 });
+            setToastVisible(true);
+            toastOpacity.value = withSpring(1, { damping: 15, stiffness: 200 });
+            toastScale.value = withSpring(1, { damping: 15, stiffness: 200 });
 
-            // 2초 후 토스트 숨김
             setTimeout(() => {
-                toastScale.value = withSpring(0, {
-                    damping: 20,
-                    stiffness: 300,
-                });
-                toastOpacity.value = withTiming(0, { duration: 200 });
-                setTimeout(() => setShowCopyToast(false), 200);
+                toastOpacity.value = withSpring(0, { damping: 15, stiffness: 200 });
+                toastScale.value = withSpring(0, { damping: 15, stiffness: 200 });
+                setTimeout(() => setToastVisible(false), 200);
             }, 2000);
-        } catch (error) {
-            console.error('클립보드 복사 실패:', error);
-            Alert.alert('복사 실패', '이메일 주소 복사에 실패했습니다.');
+        } catch {
+            Alert.alert('오류', '이메일을 복사할 수 없습니다.');
         }
     };
 
-    const InfoItem = ({ icon, title, value, color = theme.textPrimary }: {
-        icon: string;
-        title: string;
-        value: string;
-        color?: string;
-    }) => (
-        <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginBottom: 10,
-            paddingVertical: 6,
-            paddingHorizontal: 8,
-            backgroundColor: 'transparent',
-            borderRadius: 6,
-        }}>
-            <View style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                backgroundColor: theme.primary + '15',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: 12,
-            }}>
-                <Ionicons name={icon as any} size={16} color={theme.primary} />
+    if (!visible) return null;
+
+    return (
+        <Modal visible transparent statusBarTranslucent animationType="none">
+            <StatusBar barStyle="dark-content" backgroundColor="rgba(255,255,255,0.8)" />
+
+            {/* Backdrop */}
+            <Animated.View style={[styles.backdrop, backdropStyle]}>
+                <BlurView intensity={40} tint="light" style={StyleSheet.absoluteFillObject} />
+
+                {/* Modal Card */}
+                <Animated.View style={[styles.modalCard, modalStyle]}>
+                    <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFillObject} />
+
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <View style={styles.avatarContainer}>
+                            <LinearGradient
+                                colors={[theme.primary, theme.primary + 'DD']}
+                                style={styles.avatarGradient}
+                            >
+                                <Ionicons name="person" size={36} color={theme.onPrimary} />
+                            </LinearGradient>
+                        </View>
+
+                        <Text style={[styles.name, { color: theme.textPrimary }]}>
+                            Jinhan Park
+                        </Text>
+
+                        <Text style={[styles.title, { color: theme.textSecondary }]}>
+                            Full Stack Developer
+                        </Text>
+
+                        <View style={styles.badge}>
+                            <Text style={[styles.badgeText, { color: theme.primary }]}>
+                                Tech University of Korea
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Info Section */}
+                    <View style={styles.infoSection}>
+                        <InfoItem
+                            icon="mail"
+                            title="Email"
+                            value="jhnnn.park@gmail.com"
+                            onPress={handleEmail}
+                        />
+                        <InfoItem
+                            icon="logo-github"
+                            title="GitHub"
+                            value="jhnnnp"
+                            onPress={handleGitHub}
+                        />
+                        <InfoItem
+                            icon="phone-portrait"
+                            title="App"
+                            value="TIBO - Smart Camera"
+                        />
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View style={styles.actionButtons}>
+                        <ActionButton
+                            icon="logo-github"
+                            label="GitHub"
+                            onPress={handleGitHub}
+                            theme={theme}
+                        />
+                        <ActionButton
+                            icon="mail"
+                            label="Email"
+                            onPress={handleEmail}
+                            theme={theme}
+                        />
+                    </View>
+
+                    {/* Close Button */}
+                    <Pressable onPress={handleClose} style={styles.closeButton}>
+                        <LinearGradient
+                            colors={[theme.primary, theme.primary + 'DD']}
+                            style={styles.closeGradient}
+                        >
+                            <Text style={[styles.closeText, { color: theme.onPrimary }]}>
+                                Close
+                            </Text>
+                        </LinearGradient>
+                    </Pressable>
+                </Animated.View>
+            </Animated.View>
+
+            {/* Toast */}
+            {toastVisible && (
+                <Animated.View style={[styles.toast, toastStyle]}>
+                    <View style={styles.toastIcon}>
+                        <Ionicons name="checkmark" size={20} color={theme.success} />
+                    </View>
+                    <Text style={[styles.toastText, { color: theme.textPrimary }]}>
+                        Copied to Clipboard
+                    </Text>
+                </Animated.View>
+            )}
+        </Modal>
+    );
+}
+
+// Sub-components
+function InfoItem({ icon, title, value, onPress }: {
+    icon: string;
+    title: string;
+    value: string;
+    onPress?: () => void;
+}) {
+    const { theme } = useTheme();
+
+    const content = (
+        <View style={styles.infoItem}>
+            <View style={[styles.infoIcon, { backgroundColor: theme.primary + '15' }]}>
+                <Ionicons name={icon as any} size={20} color={theme.primary} />
             </View>
-            <View style={{ flex: 1 }}>
-                <Text style={{
-                    fontSize: 13,
-                    fontFamily: 'GoogleSans-Medium',
-                    color: theme.textSecondary,
-                    marginBottom: 3,
-                }}>
+            <View style={styles.infoContent}>
+                <Text style={[styles.infoTitle, { color: theme.textSecondary }]}>
                     {title}
                 </Text>
-                <Text style={{
-                    fontSize: 16,
-                    fontFamily: 'GoogleSans-Bold',
-                    color: color,
-                }}>
+                <Text style={[styles.infoValue, { color: theme.textPrimary }]}>
                     {value}
                 </Text>
             </View>
         </View>
     );
 
-    if (!visible) return null;
+    if (!onPress) {
+        return <View style={styles.infoItemWrapper}>{content}</View>;
+    }
 
     return (
-        <Modal
-            visible={visible}
-            transparent={true}
-            animationType="none"
-            statusBarTranslucent={true}
+        <Pressable
+            onPress={onPress}
+            style={styles.infoItemWrapper}
+            android_ripple={{ color: theme.primary + '10' }}
         >
-            <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.5)" />
-
-            {/* 배경 오버레이 */}
-            <Animated.View
-                style={[
-                    {
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    },
-                    backgroundAnimatedStyle,
-                ]}
-            >
-                {/* 모달 컨테이너 */}
-                <Animated.View
-                    style={[
-                        {
-                            width: screenWidth * 0.8,
-                            maxWidth: 340,
-                            backgroundColor: theme.surface,
-                            borderRadius: 16,
-                            padding: 18,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 15 },
-                            shadowOpacity: 0.25,
-                            shadowRadius: 30,
-                            elevation: 15,
-                        },
-                        modalAnimatedStyle,
-                    ]}
-                >
-
-
-                    {/* 콘텐츠 */}
-                    <Animated.View style={contentAnimatedStyle}>
-                        {/* 앱 정보 */}
-                        <View style={{
-                            backgroundColor: theme.background,
-                            borderRadius: 12,
-                            padding: 12,
-                            marginBottom: 10,
-                            borderWidth: 1,
-                            borderColor: theme.outline + '15',
-                        }}>
-                            <Text style={{
-                                fontSize: 18,
-                                fontFamily: 'GoogleSans-Bold',
-                                color: theme.textPrimary,
-                                marginBottom: 10,
-                            }}>
-                                앱 정보
-                            </Text>
-                            <InfoItem
-                                icon="phone-portrait"
-                                title="앱 이름"
-                                value="TIBO"
-                            />
-                        </View>
-
-                        {/* 개발자 정보 */}
-                        <View style={{
-                            backgroundColor: theme.background,
-                            borderRadius: 12,
-                            padding: 12,
-                            marginBottom: 10,
-                            borderWidth: 1,
-                            borderColor: theme.outline + '15',
-                        }}>
-                            <Text style={{
-                                fontSize: 18,
-                                fontFamily: 'GoogleSans-Bold',
-                                color: theme.textPrimary,
-                                marginBottom: 10,
-                            }}>
-                                개발자 정보
-                            </Text>
-                            <InfoItem
-                                icon="person"
-                                title="개발자"
-                                value="박진한"
-                            />
-                            <InfoItem
-                                icon="school"
-                                title="소속"
-                                value="한국공학대학교"
-                            />
-                            <InfoItem
-                                icon="id-card"
-                                title="학번"
-                                value="2022150049"
-                            />
-                            <InfoItem
-                                icon="mail"
-                                title="이메일"
-                                value="jhnnn.park@gmail.com"
-                            />
-                        </View>
-
-                        {/* 링크 버튼들 */}
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <Animated.View style={[{ flex: 1 }, githubButtonAnimatedStyle]}>
-                                <TouchableOpacity
-                                    style={{
-                                        paddingVertical: 10,
-                                        paddingHorizontal: 14,
-                                        borderRadius: 10,
-                                        borderWidth: 1.5,
-                                        borderColor: theme.outline + '30',
-                                        backgroundColor: 'transparent',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                    onPress={handleGithubPress}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons name="logo-github" size={18} color={theme.textPrimary} />
-                                    <Text
-                                        style={{
-                                            fontSize: 14,
-                                            fontFamily: 'GoogleSans-Medium',
-                                            color: theme.textPrimary,
-                                            marginTop: 3,
-                                        }}
-                                    >
-                                        GitHub
-                                    </Text>
-                                </TouchableOpacity>
-                            </Animated.View>
-
-                            <Animated.View style={[{ flex: 1 }, emailButtonAnimatedStyle]}>
-                                <TouchableOpacity
-                                    style={{
-                                        paddingVertical: 10,
-                                        paddingHorizontal: 14,
-                                        borderRadius: 10,
-                                        borderWidth: 1.5,
-                                        borderColor: theme.outline + '30',
-                                        backgroundColor: 'transparent',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}
-                                    onPress={handleEmailPress}
-                                    activeOpacity={0.8}
-                                >
-                                    <Ionicons name="mail" size={18} color={theme.textPrimary} />
-                                    <Text
-                                        style={{
-                                            fontSize: 14,
-                                            fontFamily: 'GoogleSans-Medium',
-                                            color: theme.textPrimary,
-                                            marginTop: 3,
-                                        }}
-                                    >
-                                        이메일
-                                    </Text>
-                                </TouchableOpacity>
-                            </Animated.View>
-                        </View>
-                    </Animated.View>
-
-                    {/* 버튼 */}
-                    <Animated.View
-                        style={[
-                            {
-                                width: '100%',
-                                marginTop: 10,
-                            },
-                            buttonAnimatedStyle,
-                        ]}
-                    >
-                        <TouchableOpacity
-                            style={{
-                                paddingVertical: 12,
-                                paddingHorizontal: 18,
-                                borderRadius: 10,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                            onPress={handleClosePress}
-                            activeOpacity={0.8}
-                        >
-                            <LinearGradient
-                                colors={[theme.primary, theme.primary + 'DD']}
-                                style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    borderRadius: 10,
-                                }}
-                            />
-                            <Text
-                                style={{
-                                    fontSize: 16,
-                                    fontFamily: 'GoogleSans-Medium',
-                                    color: theme.onPrimary,
-                                }}
-                            >
-                                확인
-                            </Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                </Animated.View>
-            </Animated.View>
-
-            {/* 복사 완료 토스트 */}
-            {showCopyToast && (
-                <Animated.View
-                    style={[
-                        {
-                            position: 'absolute',
-                            bottom: 100,
-                            left: 20,
-                            right: 20,
-                            backgroundColor: theme.surface,
-                            borderRadius: 12,
-                            padding: 16,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 8 },
-                            shadowOpacity: 0.2,
-                            shadowRadius: 16,
-                            elevation: 10,
-                        },
-                        toastAnimatedStyle,
-                    ]}
-                >
-                    <View style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 16,
-                        backgroundColor: theme.success + '20',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: 12,
-                    }}>
-                        <Ionicons name="checkmark" size={18} color={theme.success} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                        <Text style={{
-                            fontSize: 16,
-                            fontFamily: 'GoogleSans-Bold',
-                            color: theme.textPrimary,
-                            marginBottom: 2,
-                        }}>
-                            복사 완료
-                        </Text>
-                        <Text style={{
-                            fontSize: 14,
-                            fontFamily: 'GoogleSans-Regular',
-                            color: theme.textSecondary,
-                        }}>
-                            이메일 주소가 클립보드에 복사되었습니다
-                        </Text>
-                    </View>
-                </Animated.View>
-            )}
-        </Modal>
+            {content}
+        </Pressable>
     );
-} 
+}
+
+function ActionButton({ icon, label, onPress, theme }: {
+    icon: string;
+    label: string;
+    onPress: () => void;
+    theme: any;
+}) {
+    return (
+        <Pressable
+            onPress={onPress}
+            style={[styles.actionButton, { borderColor: theme.primary + '30' }]}
+            android_ripple={{ color: theme.primary + '10' }}
+        >
+            <Ionicons name={icon as any} size={20} color={theme.primary} />
+            <Text style={[styles.actionLabel, { color: theme.primary }]}>{label}</Text>
+        </Pressable>
+    );
+}
+
+// Styles
+const styles = StyleSheet.create({
+    backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalCard: {
+        width: SCREEN_WIDTH * 0.9,
+        maxWidth: 400,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 24,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.15,
+        shadowRadius: 40,
+        elevation: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.8)',
+    },
+    header: {
+        alignItems: 'center',
+        paddingTop: 32,
+        paddingBottom: 24,
+    },
+    avatarContainer: {
+        marginBottom: 16,
+    },
+    avatarGradient: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    name: {
+        fontSize: 24,
+        fontFamily: 'GoogleSans-Bold',
+        marginBottom: 4,
+    },
+    title: {
+        fontSize: 16,
+        fontFamily: 'GoogleSans-Regular',
+        marginBottom: 12,
+    },
+    badge: {
+        backgroundColor: 'rgba(0, 255, 189, 0.1)',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 255, 189, 0.2)',
+    },
+    badgeText: {
+        fontSize: 12,
+        fontFamily: 'GoogleSans-Medium',
+        textAlign: 'center',
+    },
+    infoSection: {
+        paddingHorizontal: 24,
+        paddingBottom: 20,
+    },
+    infoItemWrapper: {
+        marginBottom: 12,
+    },
+    infoItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+    },
+    infoIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    infoContent: {
+        flex: 1,
+    },
+    infoTitle: {
+        fontSize: 11,
+        fontFamily: 'GoogleSans-Medium',
+        marginBottom: 2,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    infoValue: {
+        fontSize: 15,
+        fontFamily: 'GoogleSans-Bold',
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        paddingHorizontal: 24,
+        marginBottom: 20,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0, 0, 0, 0.03)',
+        borderWidth: 1,
+        gap: 8,
+    },
+    actionLabel: {
+        fontSize: 14,
+        fontFamily: 'GoogleSans-Medium',
+    },
+    closeButton: {
+        marginHorizontal: 24,
+        marginBottom: 24,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    closeGradient: {
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    closeText: {
+        fontSize: 16,
+        fontFamily: 'GoogleSans-Bold',
+    },
+    toast: {
+        position: 'absolute',
+        bottom: 100,
+        left: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    toastIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    toastText: {
+        fontSize: 15,
+        fontFamily: 'GoogleSans-Bold',
+        flex: 1,
+    },
+});

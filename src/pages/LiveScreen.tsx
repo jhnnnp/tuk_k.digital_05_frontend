@@ -43,7 +43,7 @@ import { liveStreamService, LiveStreamState } from '../services/LiveStreamServic
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeedbackCircleButton from '../components/atoms/FeedbackCircleButton';
-import CaptureToast from '../components/atoms/CaptureToast';
+import CaptureNotification from '../components/atoms/CaptureNotification';
 
 // Performance optimized animated components
 // const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -122,7 +122,7 @@ function StatusBadge({ color, text }: { color: string; text: string }) {
             paddingVertical: 6,
             marginBottom: 4,
         }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, marginRight: 6, backgroundColor: color }} />
+            <View style={[styles.statusBadgeDot, { backgroundColor: color }]} />
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{text}</Text>
         </View>
     );
@@ -468,7 +468,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                                     <Text style={[styles.controlTitle, { color: theme.textPrimary }]}>Remote Control</Text>
                                 </View>
                                 <View style={styles.subtitleRow}>
-                                    <View style={[styles.statusDot, { backgroundColor: moveMode ? '#10b981' : '#9ca3af' }]} />
+                                    <View style={[styles.controlStatusDot, { backgroundColor: moveMode ? '#10b981' : '#9ca3af' }]} />
                                     <Text style={[styles.controlSubtitle, { color: theme.textSecondary }]}>
                                         이동모드 {moveMode ? 'ON' : 'OFF'}
                                     </Text>
@@ -530,10 +530,11 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                     </Card>
                 </View>
             </SafeAreaView>
-            {/* 커스텀 캡쳐 토스트 */}
-            <CaptureToast
+            {/* 커스텀 캡쳐 알림 */}
+            <CaptureNotification
                 visible={showCaptureToast}
                 onHide={() => setShowCaptureToast(false)}
+                type="capture"
             />
             {/* ToastMessage 컴포넌트는 앱 루트(App.tsx 등)에 <Toast />로 한 번만 추가 필요 */}
             <Toast />
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
     },
-    statusDot: {
+    statusBadgeDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    statusDot: {
+    controlStatusDot: {
         width: 6,
         height: 6,
         borderRadius: 3,

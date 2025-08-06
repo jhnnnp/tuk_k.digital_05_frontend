@@ -353,6 +353,8 @@ class UserDataService {
         biometricEnabled: boolean;
         pinEnabled: boolean;
         currentPin: string;
+        isPinRegistered?: boolean;
+        pinSetupCompleted?: boolean;
     }): Promise<void> {
         try {
             const key = this.getUserKey(userId, 'appLockSettings');
@@ -370,6 +372,8 @@ class UserDataService {
         biometricEnabled: boolean;
         pinEnabled: boolean;
         currentPin: string;
+        isPinRegistered?: boolean;
+        pinSetupCompleted?: boolean;
     } | null> {
         try {
             const key = this.getUserKey(userId, 'appLockSettings');
@@ -393,6 +397,77 @@ class UserDataService {
             }
         } catch (error) {
             console.error('앱 잠금 설정 마이그레이션 실패:', error);
+        }
+    }
+
+    // 📌 PIN 등록 상태 확인 (앱락 진입 로직을 위한 헬퍼 함수)
+    async isPinRegistered(): Promise<boolean> {
+        try {
+            console.log('🔍 [USER DATA SERVICE] PIN 등록 상태 확인 시작');
+
+            // 1. 현재 사용자 ID로 사용자별 설정 확인
+            if (this.currentUserId) {
+                console.log(`👤 [USER DATA SERVICE] 사용자별 설정 확인 - ID: ${this.currentUserId}`);
+                const userSettings = await this.getAppLockSettings(this.currentUserId);
+
+                if (userSettings) {
+                    const hasPin = userSettings.currentPin && userSettings.currentPin.length > 0;
+                    const isRegistered = userSettings.isPinRegistered || hasPin;
+                    console.log(`✅ [USER DATA SERVICE] 사용자별 설정 발견 - PIN 등록: ${isRegistered ? '등록됨' : '미등록'}`);
+                    return isRegistered;
+                }
+            }
+
+            // 2. 전역 설정 확인 (fallback)
+            console.log('📦 [USER DATA SERVICE] 전역 설정 확인 (fallback)');
+            const globalSettings = await AsyncStorage.getItem('appLockSettings');
+
+            if (globalSettings) {
+                const settings = JSON.parse(globalSettings);
+                const hasPin = settings.currentPin && settings.currentPin.length > 0;
+                const isRegistered = settings.isPinRegistered || hasPin;
+                console.log(`✅ [USER DATA SERVICE] 전역 설정 발견 - PIN 등록: ${isRegistered ? '등록됨' : '미등록'}`);
+                return isRegistered;
+            }
+
+            // 3. 설정이 없으면 미등록 상태로 간주
+            console.log('📝 [USER DATA SERVICE] 설정 없음 - PIN 미등록 상태로 간주');
+            return false;
+
+        } catch (error) {
+            console.error('❌ [USER DATA SERVICE] PIN 등록 상태 확인 실패:', error);
+            // 오류 시 안전하게 미등록 상태로 간주 (자유 진입 허용)
+            return false;
+        }
+    }
+
+    // 📌 앱락 인증 필요 여부 확인 (앱 시작 시 사용)
+    async shouldRequireAppLockAuth(): Promise<boolean> {
+        try {
+            const pinRegistered = await this.isPinRegistered();
+
+            if (!pinRegistered) {
+                console.log('🔓 [USER DATA SERVICE] PIN 미등록 - 앱락 인증 불필요');
+                return false;
+            }
+
+            // PIN이 등록된 경우 앱락 활성화 여부도 확인
+            const settings = this.currentUserId
+                ? await this.getAppLockSettings(this.currentUserId)
+                : JSON.parse(await AsyncStorage.getItem('appLockSettings') || 'null');
+
+            if (settings && settings.appLockEnabled) {
+                console.log('🔒 [USER DATA SERVICE] PIN 등록 + 앱락 활성화 - 인증 필요');
+                return true;
+            }
+
+            console.log('🔓 [USER DATA SERVICE] PIN 등록되었지만 앱락 비활성화 - 인증 불필요');
+            return false;
+
+        } catch (error) {
+            console.error('❌ [USER DATA SERVICE] 앱락 인증 필요 여부 확인 실패:', error);
+            // 오류 시 안전하게 인증 불필요로 간주
+            return false;
         }
     }
 }

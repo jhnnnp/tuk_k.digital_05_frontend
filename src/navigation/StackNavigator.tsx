@@ -10,7 +10,15 @@ import QuietTimeSettingsScreen from '../screens/settings/QuietTimeSettingsScreen
 
 const Stack = createStackNavigator();
 
-export default function SettingsStackNavigator({ onLogout }: { onLogout: () => void }) {
+export default function SettingsStackNavigator({
+    onLogout,
+    onPinSetupShow,
+    onPinSetupHide
+}: {
+    onLogout: () => void;
+    onPinSetupShow?: () => void;
+    onPinSetupHide?: () => void;
+}) {
     return (
         <Stack.Navigator
             screenOptions={{

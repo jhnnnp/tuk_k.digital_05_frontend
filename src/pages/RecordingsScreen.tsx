@@ -1,5 +1,5 @@
 // src/pages/RecordingsScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, View, Text, Image, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeProvider';
@@ -11,12 +11,6 @@ import RecordingActionSheet from '../components/atoms/RecordingActionSheet';
 import CalendarPicker from '../components/atoms/CalendarPicker';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withSpring,
-    withTiming,
-} from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -37,13 +31,21 @@ interface Recording {
     description: string;
 }
 
+interface DownloadSuccessConfig {
+    title: string;
+    message: string;
+    fileName: string;
+    fileSize: string;
+}
+
 export default function RecordingsScreen() {
     const { theme } = useTheme();
+
+    // State management
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [calendarVisible, setCalendarVisible] = useState(false);
     const [selectedStartDate, setSelectedStartDate] = useState(new Date());
     const [selectedEndDate, setSelectedEndDate] = useState(new Date());
-    const [filterMenuVisible, setFilterMenuVisible] = useState(false);
     const [playingRecording, setPlayingRecording] = useState<string | null>(null);
     const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
     const [selectedVideo, setSelectedVideo] = useState<Recording | null>(null);
@@ -51,16 +53,17 @@ export default function RecordingsScreen() {
     const [isDownloading, setIsDownloading] = useState(false);
     const [downloadingFile, setDownloadingFile] = useState<Recording | null>(null);
     const [downloadSuccessVisible, setDownloadSuccessVisible] = useState(false);
-    const [downloadSuccessConfig, setDownloadSuccessConfig] = useState({
+    const [downloadSuccessConfig, setDownloadSuccessConfig] = useState<DownloadSuccessConfig>({
         title: '',
         message: '',
         fileName: '',
         fileSize: '',
     });
     const [actionSheetVisible, setActionSheetVisible] = useState(false);
-    const [selectedRecording, setSelectedRecording] = useState<any>(null);
+    const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
     const [recordingActions, setRecordingActions] = useState<any[]>([]);
 
+    // Mock data
     const recordings: Recording[] = [
         {
             id: '1',
@@ -102,31 +105,31 @@ export default function RecordingsScreen() {
             id: '4',
             camera: 'TIBO 로봇캠',
             timestamp: '2025-07-23T21:05:00',
-            duration: '0:48',
+            duration: '4:18',
             type: 'sleep',
             severity: 'low',
-            size: '39MB',
-            thumbnail: 'https://images.unsplash.com/photo-1566195992011-5f6b21e539aa?w=400&h=300&fit=crop&auto=format',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+            size: '234MB',
+            thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
             description: '수면 상태 변화 감지'
         },
         {
             id: '5',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T22:30:00',
-            duration: '1:25',
+            timestamp: '2025-07-23T14:30:00',
+            duration: '1:45',
             type: 'activity',
             severity: 'medium',
-            size: '67MB',
-            thumbnail: 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=400&h=300&fit=crop&auto=format',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+            size: '89MB',
+            thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
             description: '높은 활동량 감지'
         },
         {
             id: '6',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T23:15:00',
-            duration: '0:32',
+            timestamp: '2025-07-23T16:20:00',
+            duration: '2:30',
             type: 'manual',
             severity: 'low',
             size: '28MB',
@@ -136,7 +139,8 @@ export default function RecordingsScreen() {
         }
     ];
 
-    const filters = [
+    // Computed values using useMemo for performance
+    const filters = useMemo(() => [
         {
             id: 'all',
             label: '전체',
@@ -193,9 +197,31 @@ export default function RecordingsScreen() {
             color: theme.textSecondary,
             description: '수동 녹화'
         },
-    ];
+    ], [recordings, theme]);
 
-    const formatTime = (timestamp: string) => {
+    // Utility functions
+    const isDateInRange = (date: Date): boolean => {
+        const recordingDate = new Date(date);
+        const startDate = new Date(selectedStartDate);
+        const endDate = new Date(selectedEndDate);
+
+        // 시간을 제거하고 날짜만 비교
+        recordingDate.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        return recordingDate >= startDate && recordingDate <= endDate;
+    };
+
+    const filteredRecordings = useMemo(() => {
+        const filtered = selectedFilter === 'all'
+            ? recordings
+            : recordings.filter(r => r.type === selectedFilter);
+
+        return filtered.filter(r => isDateInRange(new Date(r.timestamp)));
+    }, [recordings, selectedFilter, selectedStartDate, selectedEndDate]);
+
+    const formatTime = (timestamp: string): string => {
         const date = new Date(timestamp);
         return date.toLocaleTimeString('ko-KR', {
             hour: 'numeric',
@@ -204,7 +230,7 @@ export default function RecordingsScreen() {
         });
     };
 
-    const formatDate = (timestamp: string) => {
+    const formatDate = (timestamp: string): string => {
         const date = new Date(timestamp);
         const today = new Date();
         const yesterday = new Date(today);
@@ -279,43 +305,7 @@ export default function RecordingsScreen() {
         }
     };
 
-    const filteredRecordings = selectedFilter === 'all'
-        ? recordings
-        : recordings.filter(r => r.type === selectedFilter);
-
-    // 날짜 필터링
-    const isDateInRange = (date: Date) => {
-        const recordingDate = new Date(date);
-        const startDate = new Date(selectedStartDate);
-        const endDate = new Date(selectedEndDate);
-
-        // 시간을 제거하고 날짜만 비교
-        recordingDate.setHours(0, 0, 0, 0);
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(0, 0, 0, 0);
-
-        return recordingDate >= startDate && recordingDate <= endDate;
-    };
-
-    const isSameDay = (d1, d2) =>
-        d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate();
-    const dateFilteredRecordings = filteredRecordings.filter(r => isDateInRange(new Date(r.timestamp)));
-    const searchedRecordings = dateFilteredRecordings;
-
-    // 필터 메뉴 토글
-    const handleFilterMenuToggle = () => {
-        setFilterMenuVisible(!filterMenuVisible);
-    };
-
-    const handleDateRangeConfirm = (startDate: Date, endDate: Date) => {
-        setSelectedStartDate(startDate);
-        setSelectedEndDate(endDate);
-        setCalendarVisible(false);
-    };
-
-    const formatDateRange = () => {
+    const formatDateRange = (): string => {
         if (selectedStartDate.getTime() === selectedEndDate.getTime()) {
             return `${selectedStartDate.getFullYear()}년 ${selectedStartDate.getMonth() + 1}월 ${selectedStartDate.getDate()}일`;
         } else {
@@ -323,111 +313,82 @@ export default function RecordingsScreen() {
         }
     };
 
-
-
-    // 녹화 재생
-    const handlePlayRecording = (recording: Recording) => {
-        setSelectedVideo(recording);
-        setVideoPlayerVisible(true);
+    // Event handlers
+    const handleDateRangeConfirm = (startDate: Date, endDate: Date): void => {
+        setSelectedStartDate(startDate);
+        setSelectedEndDate(endDate);
+        setCalendarVisible(false);
     };
 
-    // 다운로드 취소
-    const handleCancelDownload = () => {
+    const handlePlayRecording = (recording: Recording): void => {
+        setSelectedVideo(recording);
+        setVideoPlayerVisible(true);
+        setPlayingRecording(recording.id);
+    };
+
+    const handleCancelDownload = (): void => {
         setIsDownloading(false);
         setDownloadProgress(0);
         setDownloadingFile(null);
     };
 
-    // 녹화 다운로드
-    const handleDownloadRecording = async (recording: Recording) => {
+    const handleDownloadRecording = async (recording: Recording): Promise<void> => {
         try {
-            // 권한 요청
             const { status } = await MediaLibrary.requestPermissionsAsync();
+
             if (status !== 'granted') {
-                Alert.alert('권한 필요', '갤러리에 저장하려면 권한이 필요합니다.');
+                Alert.alert('권한 필요', '미디어 라이브러리 접근 권한이 필요합니다.');
                 return;
             }
 
-            Alert.alert(
-                '다운로드',
-                `${recording.description}\n\n다운로드하시겠습니까?`,
-                [
-                    { text: '취소', style: 'cancel' },
-                    {
-                        text: '다운로드',
-                        onPress: async () => {
-                            try {
-                                console.log('다운로드 시작:', recording.videoUrl);
+            setIsDownloading(true);
+            setDownloadingFile(recording);
+            setDownloadProgress(0);
 
-                                // 다운로드 상태 초기화
-                                setIsDownloading(true);
-                                setDownloadProgress(0);
-                                setDownloadingFile(recording);
-
-                                // 파일 다운로드
-                                const downloadResumable = FileSystem.createDownloadResumable(
-                                    recording.videoUrl,
-                                    FileSystem.documentDirectory + `recording_${recording.id}.mp4`,
-                                    {},
-                                    (downloadProgress) => {
-                                        const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-                                        const progressPercent = Math.round(progress * 100);
-                                        console.log(`다운로드 진행률: ${progressPercent}%`);
-                                        setDownloadProgress(progressPercent);
-                                    }
-                                );
-
-                                const { uri } = await downloadResumable.downloadAsync();
-
-                                // 100% 완료 표시
-                                setDownloadProgress(100);
-
-                                // 갤러리에 저장
-                                const asset = await MediaLibrary.createAssetAsync(uri);
-                                await MediaLibrary.createAlbumAsync('TIBO Recordings', asset, false);
-
-                                // 다운로드 완료
-                                setTimeout(() => {
-                                    setIsDownloading(false);
-                                    setDownloadProgress(0);
-                                    setDownloadingFile(null);
-
-                                    setDownloadSuccessConfig({
-                                        title: '완료',
-                                        message: '저장되었습니다.',
-                                        fileName: recording.description,
-                                        fileSize: recording.size,
-                                    });
-                                    setDownloadSuccessVisible(true);
-                                }, 1000);
-
-                            } catch (error) {
-                                console.error('다운로드 오류:', error);
-                                setIsDownloading(false);
-                                setDownloadProgress(0);
-                                setDownloadingFile(null);
-                                setDownloadSuccessConfig({
-                                    title: '다운로드 실패',
-                                    message: '파일 다운로드에 실패했습니다.',
-                                    fileName: recording.description,
-                                    fileSize: recording.size,
-                                });
-                                setDownloadSuccessVisible(true);
-                            }
-                        }
-                    }
-                ]
+            const downloadResumable = FileSystem.createDownloadResumable(
+                recording.videoUrl,
+                FileSystem.documentDirectory + `recording_${recording.id}.mp4`,
+                {},
+                (downloadProgress) => {
+                    const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+                    setDownloadProgress(progress);
+                }
             );
+
+            const { uri } = await downloadResumable.downloadAsync();
+
+            if (uri) {
+                const asset = await MediaLibrary.createAssetAsync(uri);
+                await MediaLibrary.createAlbumAsync('TIBO Recordings', asset, false);
+
+                setDownloadSuccessConfig({
+                    title: '다운로드 완료',
+                    message: '녹화 파일이 갤러리에 저장되었습니다.',
+                    fileName: recording.description,
+                    fileSize: recording.size,
+                });
+                setDownloadSuccessVisible(true);
+
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
         } catch (error) {
-            console.error('권한 요청 오류:', error);
-            Alert.alert('오류', '권한 요청에 실패했습니다.');
+            console.error('다운로드 오류:', error);
+            setDownloadSuccessConfig({
+                title: '다운로드 실패',
+                message: '파일 다운로드에 실패했습니다.',
+                fileName: recording.description,
+                fileSize: recording.size,
+            });
+            setDownloadSuccessVisible(true);
+        } finally {
+            setIsDownloading(false);
+            setDownloadProgress(0);
+            setDownloadingFile(null);
         }
     };
 
-    // 녹화 공유
-    const handleShareRecording = async (recording: Recording) => {
+    const handleShareRecording = async (recording: Recording): Promise<void> => {
         try {
-            // 백그라운드에서 파일 다운로드 (진행률 표시 없음)
             const downloadResumable = FileSystem.createDownloadResumable(
                 recording.videoUrl,
                 FileSystem.documentDirectory + `share_${recording.id}.mp4`
@@ -435,7 +396,6 @@ export default function RecordingsScreen() {
 
             const { uri } = await downloadResumable.downloadAsync();
 
-            // 다운로드 완료 후 바로 시스템 공유
             if (await Sharing.isAvailableAsync()) {
                 await Sharing.shareAsync(uri, {
                     mimeType: 'video/mp4',
@@ -445,15 +405,13 @@ export default function RecordingsScreen() {
             } else {
                 Alert.alert('공유 불가', '이 기기에서는 공유 기능을 사용할 수 없습니다.');
             }
-
         } catch (error) {
             console.error('공유 오류:', error);
             Alert.alert('공유 실패', '파일 다운로드 중 오류가 발생했습니다.');
         }
     };
 
-    // 녹화 삭제
-    const handleDeleteRecording = (recording: Recording) => {
+    const handleDeleteRecording = (recording: Recording): void => {
         Alert.alert(
             '삭제 확인',
             `${recording.description}\n\n이 녹화를 삭제하시겠습니까?\n\n삭제된 녹화는 복구할 수 없습니다.`,
@@ -464,13 +422,10 @@ export default function RecordingsScreen() {
                     style: 'destructive',
                     onPress: () => {
                         console.log('삭제 시작:', recording.id);
-
-                        // 실제 삭제 로직 구현
                         Alert.alert('삭제 중...', '녹화 파일을 삭제하고 있습니다.');
 
                         setTimeout(() => {
-                            Alert.alert('삭제 완료', '녹화가 삭제되었습니다.');
-                            // 실제로는 recordings 배열에서 해당 항목 제거
+                            Alert.alert('삭제 완료', '녹화가 성공적으로 삭제되었습니다.');
                         }, 2000);
                     }
                 }
@@ -478,22 +433,15 @@ export default function RecordingsScreen() {
         );
     };
 
-    // 녹화 메뉴
-    const handleRecordingMenu = (recording: Recording) => {
-        setSelectedRecording({
-            title: `${recording.type} 이벤트`,
-            description: recording.description,
-            duration: recording.duration,
-            size: recording.size,
-            timestamp: recording.timestamp,
-        });
+    const handleRecordingMenu = (recording: Recording): void => {
+        setSelectedRecording(recording);
         setRecordingActions([
             {
                 id: 'play',
                 title: '재생',
-                subtitle: '녹화 영상을 재생합니다',
-                icon: 'play-circle',
-                color: '#3B82F6',
+                subtitle: '녹화를 재생합니다',
+                icon: 'play',
+                color: theme.primary,
                 type: 'default',
                 onPress: () => handlePlayRecording(recording),
             },
@@ -515,7 +463,6 @@ export default function RecordingsScreen() {
                 type: 'default',
                 onPress: () => handleShareRecording(recording),
             },
-
             {
                 id: 'delete',
                 title: '삭제',
@@ -529,8 +476,7 @@ export default function RecordingsScreen() {
         setActionSheetVisible(true);
     };
 
-    // 헤더 메뉴
-    const handleHeaderMenu = () => {
+    const handleHeaderMenu = (): void => {
         Alert.alert(
             '녹화 관리',
             '추가 옵션을 선택하세요',
@@ -547,11 +493,11 @@ export default function RecordingsScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
             <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
 
-            {/* Glassmorphism 헤더 */}
-            <BlurView intensity={20} style={{
+            {/* 헤더 */}
+            <View style={{
                 paddingHorizontal: theme.spacing.lg,
                 paddingVertical: theme.spacing.lg,
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                backgroundColor: theme.background,
                 borderBottomWidth: 1,
                 borderBottomColor: 'rgba(255, 255, 255, 0.3)',
             }}>
@@ -628,7 +574,7 @@ export default function RecordingsScreen() {
                         <Ionicons name="ellipsis-horizontal" size={22} color={theme.textSecondary} />
                     </TouchableOpacity>
                 </View>
-            </BlurView>
+            </View>
 
             <ScrollView
                 contentContainerStyle={{ padding: 16 }}
@@ -910,7 +856,7 @@ export default function RecordingsScreen() {
 
                 {/* Recordings List */}
                 <View style={{ gap: theme.spacing.sm }}>
-                    {searchedRecordings.length === 0 ? (
+                    {filteredRecordings.length === 0 ? (
                         <View style={{
                             alignItems: 'center',
                             paddingVertical: 48
@@ -919,7 +865,7 @@ export default function RecordingsScreen() {
                                 width: 64,
                                 height: 64,
                                 borderRadius: 32,
-                                backgroundColor: theme.surfaceVariant,
+                                backgroundColor: '#FFFFFF',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 marginBottom: theme.spacing.md
@@ -935,7 +881,7 @@ export default function RecordingsScreen() {
                             </Text>
                         </View>
                     ) : (
-                        searchedRecordings.map((recording) => {
+                        filteredRecordings.map((recording) => {
                             const typeInfo = getTypeInfo(recording.type, recording.severity);
                             const isPlaying = playingRecording === recording.id;
 
@@ -1149,6 +1095,7 @@ export default function RecordingsScreen() {
                         onClose={() => {
                             setVideoPlayerVisible(false);
                             setSelectedVideo(null);
+                            setPlayingRecording(null); // Stop playback when closing
                         }}
                     />
                 )
@@ -1177,7 +1124,14 @@ export default function RecordingsScreen() {
             <RecordingActionSheet
                 visible={actionSheetVisible}
                 onClose={() => setActionSheetVisible(false)}
-                recording={selectedRecording}
+                recording={selectedRecording ? {
+                    title: selectedRecording.type,
+                    description: selectedRecording.description,
+                    thumbnail: selectedRecording.thumbnail,
+                    duration: selectedRecording.duration,
+                    size: selectedRecording.size,
+                    timestamp: selectedRecording.timestamp,
+                } : null}
                 actions={recordingActions}
             />
         </SafeAreaView >

@@ -494,7 +494,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         iconColor={theme.success}
                         iconBg={theme.success + '20'}
                         label="앱 잠금"
-                        description="앱 실행 시 PIN 또는 생체 인증을 요구합니다"
+                        description="앱 완전 종료 후 재실행 시에만 인증 요구 (선택사항)"
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
                         onPress={() => navigation.navigate('AppLock')}
                     />

@@ -46,6 +46,12 @@ export default function CalendarPicker({
     const [isDragging, setIsDragging] = useState(false);
     const panRef = useRef(null);
 
+    // ✨ 정확한 너비 계산
+    const containerPadding = 48; // paddingHorizontal 24 * 2
+    const modalPadding = 40; // 모달 외부 패딩
+    const availableWidth = width - modalPadding - containerPadding;
+    const cellSize = Math.floor(availableWidth / 7);
+
     // 모달 애니메이션
     useEffect(() => {
         if (isVisible) {
@@ -112,13 +118,23 @@ export default function CalendarPicker({
         const days = [];
         const currentDate = new Date(startDate);
 
-        while (currentDate <= lastDay || days.length < 42) {
+        // 6주(42일)를 정확히 생성하여 7일씩 나누어지도록 함
+        for (let i = 0; i < 42; i++) {
             days.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
         return days;
     }, [currentMonth]);
+
+    // ✨ 캘린더 데이터를 주별로 그룹화
+    const calendarWeeks = useMemo(() => {
+        const weeks = [];
+        for (let i = 0; i < calendarData.length; i += 7) {
+            weeks.push(calendarData.slice(i, i + 7));
+        }
+        return weeks;
+    }, [calendarData]);
 
     // 이전 월로 이동
     const goToPreviousMonth = () => {
@@ -215,8 +231,6 @@ export default function CalendarPicker({
         onClose();
     };
 
-
-
     return (
         <Modal
             visible={isVisible}
@@ -281,8 +295,6 @@ export default function CalendarPicker({
                             </View>
                         </Animated.View>
 
-
-
                         {/* 월 네비게이션 */}
                         <Animated.View style={[styles.monthNavigation, { opacity: calendarOpacity }]}>
                             <TouchableOpacity
@@ -307,7 +319,13 @@ export default function CalendarPicker({
                         {/* 요일 헤더 */}
                         <Animated.View style={[styles.weekHeader, { opacity: calendarOpacity }]}>
                             {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-                                <View key={day} style={styles.weekDayHeader}>
+                                <View
+                                    key={day}
+                                    style={[
+                                        styles.weekDayHeader,
+                                        { width: cellSize } // ✨ 정확한 너비 설정
+                                    ]}
+                                >
                                     <Text style={[
                                         styles.weekDayText,
                                         {
@@ -321,93 +339,103 @@ export default function CalendarPicker({
                             ))}
                         </Animated.View>
 
-                        {/* 캘린더 그리드 */}
+                        {/* ✨ 캘린더 그리드 - 주별로 렌더링 */}
                         <Animated.ScrollView
                             style={[styles.calendarGrid, { opacity: calendarOpacity }]}
                             showsVerticalScrollIndicator={false}
                         >
                             <View style={styles.calendarContainer}>
-                                {calendarData.map((date, index) => {
-                                    const isInRange = isDateInRange(date);
-                                    const isStart = isStartDate(date);
-                                    const isEnd = isEndDate(date);
-                                    const isCurrent = isCurrentMonth(date);
-                                    const isTodayDate = isToday(date);
-                                    const isWeekendDate = isWeekend(date);
+                                {calendarWeeks.map((week, weekIndex) => (
+                                    <View key={weekIndex} style={styles.weekRow}>
+                                        {week.map((date, dayIndex) => {
+                                            const isInRange = isDateInRange(date);
+                                            const isStart = isStartDate(date);
+                                            const isEnd = isEndDate(date);
+                                            const isCurrent = isCurrentMonth(date);
+                                            const isTodayDate = isToday(date);
+                                            const isWeekendDate = isWeekend(date);
 
-                                    return (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={[
-                                                styles.dateCell,
-                                                isInRange && !isStart && !isEnd && { backgroundColor: theme.primary + '15' },
-                                                isTodayDate && !isStart && !isEnd && {
-                                                    borderWidth: 2,
-                                                    borderColor: theme.primary
-                                                },
-                                                isWeekendDate && !isCurrent && { opacity: 0.4 },
-                                                !isCurrent && { opacity: 0.3 }
-                                            ]}
-                                            onPress={() => handleDateSelect(date)}
-                                            disabled={!isCurrent}
-                                            activeOpacity={0.7}
-                                        >
-                                            {(isStart || isEnd) ? (
-                                                <LinearGradient
-                                                    colors={[theme.primary, theme.primary + 'CC', theme.primary + '99']}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 1 }}
+                                            return (
+                                                <TouchableOpacity
+                                                    key={`${weekIndex}-${dayIndex}`}
                                                     style={[
-                                                        styles.glassmorphismDate,
+                                                        styles.dateCell,
                                                         {
-                                                            shadowColor: theme.primary,
-                                                            shadowOffset: { width: 0, height: 4 },
-                                                            shadowOpacity: 0.3,
-                                                            shadowRadius: 8,
-                                                            elevation: 8,
-                                                        }
+                                                            width: cellSize,
+                                                            height: cellSize,
+                                                            borderRadius: cellSize / 2,
+                                                        },
+                                                        isInRange && !isStart && !isEnd && { backgroundColor: theme.primary + '15' },
+                                                        isTodayDate && !isStart && !isEnd && {
+                                                            borderWidth: 2,
+                                                            borderColor: theme.primary
+                                                        },
+                                                        isWeekendDate && !isCurrent && { opacity: 0.4 },
+                                                        !isCurrent && { opacity: 0.3 }
                                                     ]}
+                                                    onPress={() => handleDateSelect(date)}
+                                                    disabled={!isCurrent}
+                                                    activeOpacity={0.7}
                                                 >
-                                                    <BlurView
-                                                        intensity={20}
-                                                        tint="light"
-                                                        style={styles.blurOverlay}
-                                                    >
-                                                        <Text style={[
-                                                            styles.dateText,
-                                                            { color: theme.onPrimary, fontWeight: 'bold' }
-                                                        ]}>
-                                                            {date.getDate()}
-                                                        </Text>
-                                                        <View style={styles.selectionIndicator}>
-                                                            <Ionicons
-                                                                name={isStart ? "play" : "checkmark"}
-                                                                size={10}
-                                                                color={theme.onPrimary}
-                                                            />
-                                                        </View>
-                                                    </BlurView>
-                                                </LinearGradient>
-                                            ) : (
-                                                <>
-                                                    <Text style={[
-                                                        styles.dateText,
-                                                        {
-                                                            color: isInRange ? theme.primary :
-                                                                isTodayDate ? theme.primary :
-                                                                    isWeekendDate ? theme.textSecondary : theme.textPrimary
-                                                        }
-                                                    ]}>
-                                                        {date.getDate()}
-                                                    </Text>
-                                                    {isTodayDate && !isStart && !isEnd && (
-                                                        <View style={[styles.todayIndicator, { backgroundColor: theme.primary }]} />
+                                                    {(isStart || isEnd) ? (
+                                                        <LinearGradient
+                                                            colors={[theme.primary, theme.primary + 'CC', theme.primary + '99']}
+                                                            start={{ x: 0, y: 0 }}
+                                                            end={{ x: 1, y: 1 }}
+                                                            style={[
+                                                                styles.glassmorphismDate,
+                                                                {
+                                                                    borderRadius: cellSize / 2,
+                                                                    shadowColor: theme.primary,
+                                                                    shadowOffset: { width: 0, height: 4 },
+                                                                    shadowOpacity: 0.3,
+                                                                    shadowRadius: 8,
+                                                                    elevation: 8,
+                                                                }
+                                                            ]}
+                                                        >
+                                                            <BlurView
+                                                                intensity={20}
+                                                                tint="light"
+                                                                style={styles.blurOverlay}
+                                                            >
+                                                                <Text style={[
+                                                                    styles.dateText,
+                                                                    { color: theme.onPrimary, fontWeight: 'bold' }
+                                                                ]}>
+                                                                    {date.getDate()}
+                                                                </Text>
+                                                                <View style={styles.selectionIndicator}>
+                                                                    <Ionicons
+                                                                        name={isStart ? "play" : "checkmark"}
+                                                                        size={10}
+                                                                        color={theme.onPrimary}
+                                                                    />
+                                                                </View>
+                                                            </BlurView>
+                                                        </LinearGradient>
+                                                    ) : (
+                                                        <>
+                                                            <Text style={[
+                                                                styles.dateText,
+                                                                {
+                                                                    color: isInRange ? theme.primary :
+                                                                        isTodayDate ? theme.primary :
+                                                                            isWeekendDate ? theme.textSecondary : theme.textPrimary
+                                                                }
+                                                            ]}>
+                                                                {date.getDate()}
+                                                            </Text>
+                                                            {isTodayDate && !isStart && !isEnd && (
+                                                                <View style={[styles.todayIndicator, { backgroundColor: theme.primary }]} />
+                                                            )}
+                                                        </>
                                                     )}
-                                                </>
-                                            )}
-                                        </TouchableOpacity>
-                                    );
-                                })}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                ))}
                             </View>
                         </Animated.ScrollView>
                     </Animated.View>
@@ -435,6 +463,27 @@ const styles = StyleSheet.create({
         shadowRadius: 25,
         elevation: 15,
     },
+    calendarHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.08)',
+    },
+    closeButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    headerTitleContainer: {
+        flex: 1,
+        alignItems: 'center',
+    },
     headerTitle: {
         fontSize: 16,
         fontFamily: 'GoogleSans-Bold',
@@ -451,7 +500,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'GoogleSans-Medium',
     },
-
     monthNavigation: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -487,30 +535,31 @@ const styles = StyleSheet.create({
         borderBottomColor: 'rgba(0,0,0,0.08)',
     },
     weekDayHeader: {
-        flex: 1,
         alignItems: 'center',
+        justifyContent: 'center', // ✨ 중앙 정렬 추가
     },
     weekDayText: {
         fontSize: 13,
         fontFamily: 'GoogleSans-Medium',
     },
     calendarGrid: {
-        maxHeight: 340,
+        maxHeight: 480,
     },
     calendarContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
         paddingHorizontal: 24,
         paddingVertical: 20,
     },
+    // ✨ 주별 행 스타일 추가
+    weekRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
     dateCell: {
-        width: (width - 88) / 7,
-        height: (width - 88) / 7,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: (width - 88) / 14,
-        marginVertical: 2,
         position: 'relative',
+        // width, height, borderRadius는 동적으로 설정
     },
     dateText: {
         fontSize: 15,
@@ -534,35 +583,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    calendarHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(0,0,0,0.08)',
-    },
-    closeButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.05)',
-    },
-    headerTitleContainer: {
-        flex: 1,
-        alignItems: 'center',
-    },
     glassmorphismDate: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        borderRadius: (width - 88) / 14,
         overflow: 'hidden',
+        // borderRadius는 동적으로 설정
     },
     blurOverlay: {
         flex: 1,
@@ -570,4 +598,4 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         position: 'relative',
     },
-}); 
+});

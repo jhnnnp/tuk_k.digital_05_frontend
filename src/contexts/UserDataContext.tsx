@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { userDataService, UserSettings } from '../services/UserDataService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     setUserId,
     setUserSettings,
@@ -42,14 +43,31 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
     useEffect(() => {
         const initializeUserData = async () => {
             try {
-                const currentUserId = userDataService.getCurrentUserId();
-                if (currentUserId) {
-                    await loadUserData(currentUserId);
+                console.log('🔍 [USER DATA] 앱 초기화 시작');
+
+                // 토큰 확인
+                const token = await AsyncStorage.getItem('token');
+                console.log(`🔐 [USER DATA] 토큰 상태: ${token ? '있음' : '없음'}`);
+
+                if (token) {
+                    // 토큰이 있으면 현재 사용자 ID 확인
+                    const currentUserId = userDataService.getCurrentUserId();
+                    console.log(`👤 [USER DATA] 현재 사용자 ID: ${currentUserId || '없음'}`);
+
+                    if (currentUserId) {
+                        console.log('✅ [USER DATA] 로그인된 사용자 발견 - 데이터 로드 시작');
+                        await loadUserData(currentUserId);
+                    } else {
+                        console.log('⚠️ [USER DATA] 토큰은 있지만 사용자 ID가 없음');
+                    }
+                } else {
+                    console.log('📝 [USER DATA] 토큰 없음 - 로그인 필요');
                 }
             } catch (error) {
-                console.error('사용자 데이터 초기화 실패:', error);
+                console.error('❌ [USER DATA] 사용자 데이터 초기화 실패:', error);
             } finally {
                 setIsInitializing(false);
+                console.log('✅ [USER DATA] 앱 초기화 완료');
             }
         };
 
@@ -59,11 +77,18 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
     // 사용자 데이터 로드
     const loadUserData = async (userId: string) => {
         try {
+            console.log(`📦 [USER DATA] 사용자 ${userId} 데이터 로드 시작`);
+
             const [settings, appState, platformData] = await Promise.all([
                 userDataService.getUserSettings(userId),
                 userDataService.getUserAppState(userId),
                 userDataService.getUserDataPlatformSpecific(userId)
             ]);
+
+            console.log(`📦 [USER DATA] 사용자 ${userId} 데이터 로드 완료:`);
+            console.log(`  - 설정: ${settings ? '있음' : '없음'}`);
+            console.log(`  - 앱 상태: ${appState ? '있음' : '없음'}`);
+            console.log(`  - 플랫폼 데이터: ${platformData ? '있음' : '없음'}`);
 
             // Redux store에 사용자 데이터 복원
             dispatch(restoreUserState({
@@ -75,9 +100,9 @@ export const UserDataProvider: React.FC<UserDataProviderProps> = ({ children }) 
                 isLoaded: true
             }));
 
-            console.log(`사용자 ${userId} 데이터 로드 완료`);
+            console.log(`✅ [USER DATA] 사용자 ${userId} Redux store 업데이트 완료`);
         } catch (error) {
-            console.error('사용자 데이터 로드 실패:', error);
+            console.error(`❌ [USER DATA] 사용자 ${userId} 데이터 로드 실패:`, error);
         }
     };
 

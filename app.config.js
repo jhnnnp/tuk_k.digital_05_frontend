@@ -26,6 +26,8 @@ export default ({ config }) => ({
             NSLocationWhenInUseUsageDescription: 'TIBO uses location to help identify camera locations and provide contextual information.',
             NSPhotoLibraryUsageDescription: 'TIBO needs photo library access to save captured images and recordings.',
             NSPhotoLibraryAddUsageDescription: 'TIBO saves captured images and recordings to your photo library.',
+            // 생체인증 관련 권한 추가
+            NSFaceIDUsageDescription: 'TIBO uses Face ID to securely unlock the app.',
             UIBackgroundModes: [
                 'audio',
                 'fetch',

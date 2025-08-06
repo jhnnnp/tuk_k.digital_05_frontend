@@ -34,6 +34,7 @@ import { useTheme } from '../styles/ThemeProvider';
 import { BatteryCard } from '../components/atoms/BatteryCard';
 import { WiFiCard } from '../components/atoms/WiFiCard';
 import { liveStreamService, LiveStreamState } from '../services/LiveStreamService';
+import CaptureNotification from '../components/atoms/CaptureNotification';
 
 // Performance optimized animated components
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -114,6 +115,11 @@ const mockEvents: Event[] = [
 export default function HomeScreen() {
     const { theme } = useTheme();
 
+    // 화면 크기에 따른 동적 패딩 계산
+    const { width: screenWidth } = Dimensions.get('window');
+    const isLargeScreen = screenWidth >= 1920;
+    const horizontalPadding = isLargeScreen ? 32 : 16;
+
     // Enhanced state management
     const [streamState, setStreamState] = useState<LiveStreamState>(liveStreamService.getState());
     const [isPatrolling, setIsPatrolling] = useState(false);
@@ -146,10 +152,14 @@ export default function HomeScreen() {
         container: {
             flex: 1,
             backgroundColor: theme.background,
+            paddingHorizontal: isLargeScreen ? 16 : 0,
         },
         scrollContent: {
-            padding: 20,
+            paddingHorizontal: horizontalPadding,
+            paddingTop: 8,
             paddingBottom: 100,
+            maxWidth: isLargeScreen ? 1400 : undefined,
+            alignSelf: isLargeScreen ? 'center' : 'stretch',
         },
         header: {
             flexDirection: 'row' as const,
@@ -209,9 +219,9 @@ export default function HomeScreen() {
         mainCard: {
             backgroundColor: theme.surface,
             borderRadius: 24,
-            padding: 20,
+            padding: isLargeScreen ? 24 : 16,
             marginBottom: 24,
-            shadowColor: theme.shadow || '#000',
+            shadowColor: '#000',
             shadowOffset: { width: 0, height: 12 },
             shadowOpacity: 0.15,
             shadowRadius: 24,
@@ -261,7 +271,7 @@ export default function HomeScreen() {
             borderRadius: 12,
             paddingHorizontal: 8,
             paddingVertical: 3,
-            marginLeft: 8,
+            marginTop: 4,
         },
         movingText: {
             fontFamily: 'GoogleSans-Bold',
@@ -287,11 +297,14 @@ export default function HomeScreen() {
             marginBottom: 16,
             backgroundColor: theme.surfaceVariant,
             position: 'relative' as const,
+            alignSelf: 'center' as const,
+            width: isLargeScreen ? '96%' : '96%',
         },
         videoImage: {
             width: '100%',
             height: '100%',
             resizeMode: 'cover' as const,
+            alignSelf: 'center' as const,
         },
         gradientOverlay: {
             position: 'absolute' as const,
@@ -361,8 +374,8 @@ export default function HomeScreen() {
             backgroundColor: theme.surface,
             borderRadius: 16,
             padding: 16,
-            alignItems: 'center',
-            shadowColor: theme.shadow || '#000',
+            alignItems: 'center' as const,
+            shadowColor: '#000',
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.1,
             shadowRadius: 12,
@@ -467,9 +480,9 @@ export default function HomeScreen() {
             borderRadius: 16,
             padding: 16,
             flexDirection: 'row' as const,
-            alignItems: 'center',
+            alignItems: 'center' as const,
             gap: 12,
-            shadowColor: theme.shadow || '#000',
+            shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.08,
             shadowRadius: 8,
@@ -648,6 +661,18 @@ export default function HomeScreen() {
         Alert.alert('이벤트 로그', '전체 이벤트 로그를 확인할 수 있습니다.');
     }, []);
 
+    const [showCaptureNotification, setShowCaptureNotification] = useState(false);
+
+    const handleCameraPress = useCallback(() => {
+        // 카메라 버튼 애니메이션
+        buttonScale.value = withSpring(0.95, { damping: 15 }, () => {
+            buttonScale.value = withSpring(1, { damping: 15 });
+        });
+
+        // 캡쳐 완료 알림 표시
+        setShowCaptureNotification(true);
+    }, [buttonScale]);
+
     // Enhanced utility functions
     const getBatteryStatus = useCallback((level: number, isCharging: boolean) => {
         if (isCharging) return { color: theme.primary, bg: theme.primary, label: '충전 중' };
@@ -720,7 +745,7 @@ export default function HomeScreen() {
     return (
         <SafeAreaView style={themedStyles.container}>
             <StatusBar
-                barStyle={theme.dark ? "light-content" : "dark-content"}
+                barStyle="dark-content"
                 backgroundColor={theme.background}
             />
 
@@ -728,6 +753,9 @@ export default function HomeScreen() {
                 contentContainerStyle={themedStyles.scrollContent}
                 showsVerticalScrollIndicator={false}
                 bounces={true}
+                contentInsetAdjustmentBehavior="automatic"
+                showsHorizontalScrollIndicator={false}
+                style={isLargeScreen ? { alignSelf: 'center', maxWidth: 1400 } : undefined}
             >
                 {/* 헤더: FadeIn만 적용 */}
                 <Animated.View entering={FadeIn.duration(300)} style={themedStyles.header}>
@@ -782,36 +810,29 @@ export default function HomeScreen() {
                                 <Text style={themedStyles.robotName}>
                                     {robot.name}
                                 </Text>
-                                <View style={themedStyles.locationRow}>
-                                    <Ionicons
-                                        name="location-outline"
-                                        size={14}
-                                        color={theme.textSecondary}
-                                    />
-                                    <Text style={themedStyles.locationText}>
-                                        {robot.location}
-                                    </Text>
-                                    {robot.isMoving && (
-                                        <View style={[
-                                            themedStyles.movingBadge,
-                                            { backgroundColor: theme.info + '20' }
+                                {robot.isMoving && (
+                                    <View style={[
+                                        themedStyles.movingBadge,
+                                        { backgroundColor: theme.info + '20' }
+                                    ]}>
+                                        <Text style={[
+                                            themedStyles.movingText,
+                                            { color: theme.info }
                                         ]}>
-                                            <Text style={[
-                                                themedStyles.movingText,
-                                                { color: theme.info }
-                                            ]}>
-                                                이동 중
-                                            </Text>
-                                        </View>
-                                    )}
-                                </View>
+                                            이동 중
+                                        </Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
 
-                        <TouchableOpacity style={[
-                            themedStyles.cameraButton,
-                            { backgroundColor: theme.primary + '15' }
-                        ]}>
+                        <TouchableOpacity
+                            style={[
+                                themedStyles.cameraButton,
+                                { backgroundColor: theme.primary + '15' }
+                            ]}
+                            onPress={handleCameraPress}
+                        >
                             <Ionicons
                                 name="camera-outline"
                                 size={18}
@@ -941,6 +962,13 @@ export default function HomeScreen() {
                     </View>
                 </Animated.View>
             </ScrollView>
+
+            {/* 캡쳐 완료 알림 */}
+            <CaptureNotification
+                visible={showCaptureNotification}
+                onHide={() => setShowCaptureNotification(false)}
+                type="capture"
+            />
         </SafeAreaView>
     );
 }

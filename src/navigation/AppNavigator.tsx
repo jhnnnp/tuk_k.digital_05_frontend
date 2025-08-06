@@ -17,16 +17,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LoginScreen from '../pages/LoginScreen';
 import SignupScreen from '../pages/SignupScreen';
 import IntroScreen from '../pages/IntroScreen';
+import AppLockScreen from '../pages/AppLockScreen';
 
 export default function AppNavigator() {
     const { theme } = useTheme();
-    const [activeTab, setActiveTab] = useState<'intro' | 'home' | 'live' | 'recordings' | 'settings' | 'login'>('intro');
+    const [activeTab, setActiveTab] = useState<'intro' | 'home' | 'live' | 'recordings' | 'settings' | 'login' | 'appLock'>('intro');
     const [moveMode, setMoveMode] = useState(false); // 이동모드 상태 리프팅
     const [showLiveView, setShowLiveView] = useState(false);
     const [showSignup, setShowSignup] = useState(false); // 회원가입 화면 상태
     const [showFindId, setShowFindId] = useState(false); // 아이디 찾기 화면 상태
     const [showFindPassword, setShowFindPassword] = useState(false); // 비밀번호 찾기 화면 상태
     const [loading, setLoading] = useState(true); // 초기 로딩 상태
+    const [showPinSetup, setShowPinSetup] = useState(false); // PIN 설정 화면 상태
 
     // 화면 전환 애니메이션 값들
     const slideAnim = useSharedValue(0);
@@ -186,7 +188,9 @@ export default function AppNavigator() {
             case 'recordings':
                 return <RecordingsScreen />;
             case 'settings':
-                return <SettingsStackNavigator onLogout={handleLogout} />;
+                return <SettingsStackNavigator onLogout={handleLogout} onPinSetupShow={() => setShowPinSetup(true)} onPinSetupHide={() => setShowPinSetup(false)} />;
+            case 'appLock':
+                return <AppLockScreen navigation={{ goBack: () => setActiveTab('settings') }} />;
             case 'login':
                 return (
                     <Animated.View style={[{ flex: 1 }, slideAnimatedStyle]}>
@@ -215,7 +219,7 @@ export default function AppNavigator() {
     };
 
     // 로그인/회원가입/인트로에서는 하단탭 숨김
-    const hideTabs = activeTab === 'login' || activeTab === 'intro' || showSignup || showFindId || showFindPassword;
+    const hideTabs = activeTab === 'login' || activeTab === 'intro' || showSignup || showFindId || showFindPassword || activeTab === 'appLock' || showPinSetup;
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
