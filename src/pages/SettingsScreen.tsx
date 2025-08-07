@@ -42,6 +42,40 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
     const [dataRetentionModalVisible, setDataRetentionModalVisible] = useState(false);
     const [appInfoModalVisible, setAppInfoModalVisible] = useState(false);
 
+    // 화질 설정 상태
+    const [currentQuality, setCurrentQuality] = useState('720p');
+
+    // 데이터 보관 설정 상태
+    const [currentRetention, setCurrentRetention] = useState('30');
+
+    // 화질 설정 설명 텍스트
+    const getQualityDescription = (quality: string) => {
+        switch (quality) {
+            case '360p':
+                return '저화질 (360p)';
+            case '720p':
+                return '표준 화질 (720p)';
+            case '1080p':
+                return '고화질 (1080p)';
+            default:
+                return '표준 화질 (720p)';
+        }
+    };
+
+    // 데이터 보관 설명 텍스트
+    const getRetentionDescription = (retention: string) => {
+        switch (retention) {
+            case '7':
+                return '7일 동안 녹화본 보관';
+            case '30':
+                return '30일 동안 녹화본 보관';
+            case '90':
+                return '90일 동안 녹화본 보관';
+            default:
+                return '30일 동안 녹화본 보관';
+        }
+    };
+
     useEffect(() => {
         const fetchProfile = async () => {
             console.log('==============================');
@@ -646,7 +680,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         iconColor="#8B5CF6"
                         iconBg="#8B5CF620"
                         label="화질 설정"
-                        description="고화질 (1080p)"
+                        description={getQualityDescription(currentQuality)}
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
                         onPress={() => setQualitySettingsModalVisible(true)}
                     />
@@ -655,7 +689,7 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                         iconColor="#8B5CF6"
                         iconBg="#8B5CF620"
                         label="데이터 보관"
-                        description="30일 동안 녹화본 보관"
+                        description={getRetentionDescription(currentRetention)}
                         rightElement={<Ionicons name="chevron-forward" size={16} color={theme.textSecondary} />}
                         onPress={() => setDataRetentionModalVisible(true)}
                     />
@@ -791,10 +825,10 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 visible={qualitySettingsModalVisible}
                 onClose={() => setQualitySettingsModalVisible(false)}
                 onConfirm={(quality) => {
-                    // 화질 설정 변경 시 실제 앱 설정 업데이트
+                    setCurrentQuality(quality);
                     console.log('🎥 [QUALITY SETTINGS] 화질 설정 변경됨:', quality);
                 }}
-                currentQuality="720p"
+                currentQuality={currentQuality}
             />
 
             {/* 데이터 보관 설정 모달 */}
@@ -802,10 +836,10 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
                 visible={dataRetentionModalVisible}
                 onClose={() => setDataRetentionModalVisible(false)}
                 onConfirm={(days) => {
-                    // 데이터 보관 설정 변경 시 실제 앱 설정 업데이트
+                    setCurrentRetention(days);
                     console.log('📦 [DATA RETENTION] 데이터 보관 설정 변경됨:', days);
                 }}
-                currentRetention="30"
+                currentRetention={currentRetention}
             />
 
             {/* 앱 정보 모달 */}

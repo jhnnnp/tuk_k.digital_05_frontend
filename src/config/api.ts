@@ -3,19 +3,33 @@ import Constants from 'expo-constants';
 /**
  * 개발 환경(Expo)에서는 Metro 호스트(IP:PORT) 값을 이용해
  * 현재 실행 중인 Mac IP 를 자동 추출한다.
+ *  - 터널 모드: exp.direct 도메인에서 IP 추출
+ *  - LAN 모드: 직접 IP 사용
  *  - 실기기/시뮬레이터 모두 동작
  * 프로덕션 빌드(앱스토어 등)에서는 HTTPS 고정 도메인 사용
  */
 const getDevHost = (): string | null => {
     // SDK 48 이전(manifest), 49+(expoConfig) : 둘 중 하나 존재
-    // debuggerHost 예) "192.168.0.8:8081"
-    // hostUri 예)      "192.168.0.8:8081"
+    // debuggerHost 예) "192.168.0.8:8081" (LAN 모드)
+    // hostUri 예)      "192.168.0.8:8081" (LAN 모드)
+    // 터널 모드 예)    "1__bofq-jhnnnnm-8081.exp.direct:8081"
     const host =
         (Constants as any)?.manifest?.debuggerHost ??
         (Constants as any)?.expoConfig?.hostUri ??
         null;
+
     if (!host) return null;
-    return host.split(':').shift() || null;
+
+    // 터널 모드인지 확인 (exp.direct 포함)
+    if (host.includes('exp.direct')) {
+        // 터널 모드: exp.direct 도메인에서 IP 추출
+        // 예: "1__bofq-jhnnnnm-8081.exp.direct:8081" -> "1__bofq-jhnnnnm-8081.exp.direct"
+        const domain = host.split(':')[0];
+        return domain;
+    } else {
+        // LAN 모드: IP만 추출
+        return host.split(':').shift() || null;
+    }
 };
 
 const devHost = getDevHost();
@@ -28,4 +42,9 @@ export const API_BASE_URL = devHost
 if (__DEV__) {
     console.log('🔧 [API CONFIG]');
     console.log(`  🌐 API_BASE_URL: ${API_BASE_URL}`);
+    console.log(`  🔍 Dev Host: ${devHost}`);
+    console.log(`  📱 Constants:`, {
+        debuggerHost: (Constants as any)?.manifest?.debuggerHost,
+        hostUri: (Constants as any)?.expoConfig?.hostUri
+    });
 } 
