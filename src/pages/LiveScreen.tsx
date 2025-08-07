@@ -11,7 +11,8 @@ import {
     Alert,
     Pressable,
     Platform,
-    StyleSheet
+    StyleSheet,
+    StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
@@ -34,6 +35,7 @@ import {
 } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import Orientation from 'react-native-orientation-locker';
 import { useTheme } from '../styles/ThemeProvider';
 import { BatteryCard } from '../components/atoms/BatteryCard';
 import { WiFiCard } from '../components/atoms/WiFiCard';
@@ -128,7 +130,7 @@ function StatusBadge({ color, text }: { color: string; text: string }) {
     );
 }
 
-export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }: { navigation?: any; onBack?: () => void; moveMode: boolean; setMoveMode: (v: boolean) => void }) {
+export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, onFullscreen }: { navigation?: any; onBack?: () => void; moveMode: boolean; setMoveMode: (v: boolean) => void; onFullscreen?: () => void }) {
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
 
@@ -139,14 +141,18 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
     const [streamState, setStreamState] = useState<LiveStreamState>(liveStreamService.getState());
     const [showCaptureToast, setShowCaptureToast] = useState(false);
 
+
     // Animated values for enhanced UX
     const zoomScale = useSharedValue(1);
     const videoOpacity = useSharedValue(1);
     const controlsScale = useSharedValue(1);
     const joystickScale = useSharedValue(0);
+    const videoSizeScale = useSharedValue(1);
 
     // Derived values for complex animations
-    const zoomLevel = useDerivedValue(() => zoomScale.value);
+    const zoomLevel = useDerivedValue(() => {
+        return zoomScale.value;
+    });
 
     // Enhanced animated styles
     const videoAnimatedStyle = useAnimatedStyle(() => ({
@@ -163,14 +169,34 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
         opacity: joystickScale.value,
     }));
 
+    const videoSizeButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: videoSizeScale.value }],
+    }));
+
     // Enhanced gesture handlers
     const handlePinchGesture = useCallback((event: any) => {
         const scale = Math.max(1, Math.min(3, event.nativeEvent.scale));
         zoomScale.value = withSpring(scale, { damping: 15 });
     }, [zoomScale]);
 
+    // Video size toggle handler - 네이티브 전체화면 화면으로 이동
+    const handleVideoSizeToggle = useCallback(() => {
+        console.log('[전체화면] 버튼 터치됨 - 네이티브 전체화면 화면으로 이동');
+
+        videoSizeScale.value = withSpring(0.9, { damping: 15 }, () => {
+            videoSizeScale.value = withSpring(1, { damping: 15 });
+        });
+
+        // 네이티브 전체화면 화면으로 이동
+        if (onFullscreen) {
+            onFullscreen();
+        }
+    }, [videoSizeScale, onFullscreen]);
+
     // Live stream state subscription with cleanup
     useEffect(() => {
+        console.log('[전체화면] 컴포넌트 마운트');
+
         // joystick 애니메이션만 moveMode prop으로 제어
         if (moveMode) {
             joystickScale.value = withSpring(1, { damping: 20 });
@@ -418,6 +444,10 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                     {/* 비디오 컨테이너만 PinchGestureHandler + Animated.View */}
                     <PinchGestureHandler onGestureEvent={handlePinchGesture}>
                         <Animated.View style={styles.videoContainer}>
+                            {(() => {
+                                console.log('[전체화면] 비디오 컨테이너 렌더링');
+                                return null;
+                            })()}
                             <Animated.Image
                                 source={{ uri: camera.thumbnail }}
                                 style={[styles.videoImage, videoAnimatedStyle]}
@@ -454,9 +484,28 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode }
                                     {streamState.isMicOn && <StatusBadge color="#4A90E2" text="MIC" />}
                                 </View>
                             )}
+
+                            {/* Video Size Toggle Button */}
+                            <Animated.View
+                                style={[styles.videoSizeButton, videoSizeButtonStyle]}
+                                entering={FadeInUp.delay(300).springify()}
+                            >
+                                <TouchableOpacity
+                                    style={styles.videoSizeButtonInner}
+                                    onPress={handleVideoSizeToggle}
+                                    activeOpacity={0.8}
+                                >
+                                    <Ionicons
+                                        name="expand"
+                                        size={24}
+                                        color="#ffffff"
+                                    />
+                                </TouchableOpacity>
+                            </Animated.View>
                         </Animated.View>
                     </PinchGestureHandler>
-                    {/* 나머지 UI (컨트롤 카드 등) */}
+
+                    {/* 컨트롤 카드 */}
                     <Card
                         style={styles.controlCard}
                     // entering={FadeInUp.delay(400).springify()}
@@ -554,6 +603,17 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         position: 'relative',
     },
+    fullscreenVideoContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 1000,
+        backgroundColor: '#000',
+    },
     videoImage: {
         width: '100%',
         height: '100%',
@@ -592,6 +652,25 @@ const styles = StyleSheet.create({
         fontFamily: 'GoogleSans-Bold',
         fontSize: 12,
         fontWeight: '700',
+    },
+    videoSizeButton: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        zIndex: 10,
+    },
+    videoSizeButtonInner: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 8,
     },
     statusIndicator: {
         position: 'absolute',

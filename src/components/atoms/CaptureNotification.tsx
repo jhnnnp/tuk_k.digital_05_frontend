@@ -16,6 +16,8 @@ export interface CaptureNotificationProps {
     duration?: number;
     showCheckmark?: boolean;
     onPress?: () => void;
+    compact?: boolean; // 컴팩트 모드 (FullscreenVideoScreen용)
+    topOffset?: number; // 상단 위치 조정
 }
 
 const CaptureNotification: React.FC<CaptureNotificationProps> = ({
@@ -30,7 +32,9 @@ const CaptureNotification: React.FC<CaptureNotificationProps> = ({
     borderColor,
     duration = 3000,
     showCheckmark = true,
-    onPress
+    onPress,
+    compact = false,
+    topOffset
 }) => {
     const { theme } = useTheme();
     const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -129,17 +133,37 @@ const CaptureNotification: React.FC<CaptureNotificationProps> = ({
     if (!visible) return null;
 
     const NotificationContent = () => (
-        <View style={[styles.toast, { backgroundColor: config.backgroundColor, borderColor: config.borderColor }]}>
-            <View style={[styles.iconContainer, { backgroundColor: config.iconColor + '15' }]}>
-                <Ionicons name={config.icon as any} size={20} color={config.iconColor} />
+        <View style={[
+            styles.toast,
+            { backgroundColor: config.backgroundColor, borderColor: config.borderColor },
+            compact && styles.toastCompact
+        ]}>
+            <View style={[
+                styles.iconContainer,
+                { backgroundColor: config.iconColor + '15' },
+                compact && styles.iconContainerCompact
+            ]}>
+                <Ionicons name={config.icon as any} size={compact ? 16 : 20} color={config.iconColor} />
             </View>
-            <View style={styles.content}>
-                <Text style={[styles.title, { color: config.iconColor }]}>{config.title}</Text>
-                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{config.subtitle}</Text>
+            <View style={[styles.content, compact && styles.contentCompact]}>
+                <Text style={[
+                    styles.title,
+                    { color: config.iconColor },
+                    compact && styles.titleCompact
+                ]}>{config.title}</Text>
+                <Text style={[
+                    styles.subtitle,
+                    { color: theme.textSecondary },
+                    compact && styles.subtitleCompact
+                ]}>{config.subtitle}</Text>
             </View>
             {showCheckmark && (
-                <View style={[styles.checkContainer, { backgroundColor: '#4CAF50' + '15' }]}>
-                    <Ionicons name="checkmark" size={16} color="#4CAF50" />
+                <View style={[
+                    styles.checkContainer,
+                    { backgroundColor: '#4CAF50' + '15' },
+                    compact && styles.checkContainerCompact
+                ]}>
+                    <Ionicons name="checkmark" size={compact ? 14 : 16} color="#4CAF50" />
                 </View>
             )}
         </View>
@@ -148,7 +172,14 @@ const CaptureNotification: React.FC<CaptureNotificationProps> = ({
     return (
         <Animated.View
             style={[
-                styles.container,
+                {
+                    position: 'absolute',
+                    top: topOffset !== undefined ? topOffset : 60,
+                    left: 20,
+                    right: 20,
+                    zIndex: 1000,
+                    alignItems: 'center',
+                },
                 {
                     opacity: fadeAnim,
                     transform: [{ translateY: slideAnim }],
@@ -173,6 +204,7 @@ const styles = StyleSheet.create({
         left: 20,
         right: 20,
         zIndex: 1000,
+        alignItems: 'center', // 중앙 정렬 추가
     },
     toast: {
         borderRadius: 16,
@@ -187,6 +219,12 @@ const styles = StyleSheet.create({
         elevation: 4,
         borderWidth: 1,
     },
+    toastCompact: {
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        maxWidth: 280, // 가로 길이 제한
+        alignSelf: 'center', // 중앙 정렬
+    },
     iconContainer: {
         width: 40,
         height: 40,
@@ -195,8 +233,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginRight: 12,
     },
+    iconContainerCompact: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+    },
     content: {
         flex: 1,
+    },
+    contentCompact: {
+        marginRight: 8,
     },
     title: {
         fontSize: 16,
@@ -204,10 +250,16 @@ const styles = StyleSheet.create({
         marginBottom: 2,
         fontFamily: 'GoogleSans-Bold',
     },
+    titleCompact: {
+        fontSize: 14,
+    },
     subtitle: {
         fontSize: 14,
         fontWeight: '500',
         fontFamily: 'GoogleSans-Regular',
+    },
+    subtitleCompact: {
+        fontSize: 12,
     },
     checkContainer: {
         width: 32,
@@ -216,6 +268,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 12,
+    },
+    checkContainerCompact: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
     },
 });
 

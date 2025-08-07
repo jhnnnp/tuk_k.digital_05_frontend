@@ -12,6 +12,7 @@ import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import AppLockModal from './components/atoms/AppLockModal';
 import { userDataService } from './services/UserDataService';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 // 네비게이션을 사용하기 위한 래퍼 컴포넌트
 function AppContent() {
@@ -20,6 +21,19 @@ function AppContent() {
     const appState = useRef(AppState.currentState);
     const [isAppLocked, setIsAppLocked] = useState(false);
     const [appLockEnabled, setAppLockEnabled] = useState(false);
+
+    // 앱 시작 시 세로모드로 고정
+    useEffect(() => {
+        const lockToPortrait = async () => {
+            try {
+                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                console.log('[APP] 앱 시작 - 세로모드로 고정됨');
+            } catch (error) {
+                console.log('[APP] 세로모드 고정 실패:', error);
+            }
+        };
+        lockToPortrait();
+    }, []);
 
     useEffect(() => {
         checkAppLockSettings();
@@ -173,6 +187,7 @@ function AppContent() {
                 visible={isAppLocked}
                 onUnlock={handleUnlock}
                 navigation={navigation}
+                mode="auth"
             />
         </>
     );

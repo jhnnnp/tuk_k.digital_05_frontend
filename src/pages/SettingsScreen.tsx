@@ -23,6 +23,7 @@ import DataRetentionModal from '../components/atoms/DataRetentionModal';
 import AppInfoModal from '../components/atoms/AppInfoModal';
 import { linkGoogleAccount } from '../services/GoogleAuthService';
 import { API_BASE_URL } from '../config/api';
+import * as ScreenOrientation from 'expo-screen-orientation';
 // import { CommonActions, useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen({ onLogout, navigation }: { onLogout: () => void; navigation: any }) {
@@ -256,6 +257,20 @@ export default function SettingsScreen({ onLogout, navigation }: { onLogout: () 
 
         return unsubscribe;
     }, [navigation]);
+
+    // 화면 진입 시 세로모드로 고정
+    useEffect(() => {
+        const lockToPortrait = async () => {
+            try {
+                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                console.log('화면이 세로모드로 고정되었습니다.');
+            } catch (error) {
+                console.error('화면 고정 실패:', error);
+            }
+        };
+
+        lockToPortrait();
+    }, []);
 
     // 설정 업데이트 함수
     const updateSetting = (key: string, value: any) => {

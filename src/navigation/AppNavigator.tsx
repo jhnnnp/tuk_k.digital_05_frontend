@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeProvider';
 import HomeScreen from '../pages/HomeScreen';
 import LiveScreen from '../pages/LiveScreen';
+import FullscreenVideoScreen from '../pages/FullscreenVideoScreen';
 import RecordingsScreen from '../pages/RecordingsScreen';
 import SettingsStackNavigator from './StackNavigator';
 import Toast from 'react-native-toast-message';
@@ -21,7 +22,7 @@ import AppLockScreen from '../pages/AppLockScreen';
 
 export default function AppNavigator() {
     const { theme } = useTheme();
-    const [activeTab, setActiveTab] = useState<'intro' | 'home' | 'live' | 'recordings' | 'settings' | 'login' | 'appLock'>('intro');
+    const [activeTab, setActiveTab] = useState<'intro' | 'home' | 'live' | 'recordings' | 'settings' | 'login' | 'appLock' | 'fullscreen'>('intro');
     const [moveMode, setMoveMode] = useState(false); // 이동모드 상태 리프팅
     const [showLiveView, setShowLiveView] = useState(false);
     const [showSignup, setShowSignup] = useState(false); // 회원가입 화면 상태
@@ -184,7 +185,9 @@ export default function AppNavigator() {
             case 'home':
                 return <HomeScreen />;
             case 'live':
-                return <LiveScreen onBack={() => setActiveTab('home')} moveMode={moveMode} setMoveMode={setMoveMode} />;
+                return <LiveScreen onBack={() => setActiveTab('home')} moveMode={moveMode} setMoveMode={setMoveMode} onFullscreen={() => setActiveTab('fullscreen')} />;
+            case 'fullscreen':
+                return <FullscreenVideoScreen navigation={{ goBack: () => setActiveTab('live') }} />;
             case 'recordings':
                 return <RecordingsScreen />;
             case 'settings':
@@ -219,7 +222,7 @@ export default function AppNavigator() {
     };
 
     // 로그인/회원가입/인트로에서는 하단탭 숨김
-    const hideTabs = activeTab === 'login' || activeTab === 'intro' || showSignup || showFindId || showFindPassword || activeTab === 'appLock' || showPinSetup;
+    const hideTabs = activeTab === 'login' || activeTab === 'intro' || showSignup || showFindId || showFindPassword || activeTab === 'appLock' || showPinSetup || activeTab === 'fullscreen';
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>

@@ -1,5 +1,5 @@
 // src/pages/RecordingsScreen.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SafeAreaView, ScrollView, StatusBar, View, Text, Image, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../styles/ThemeProvider';
@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -68,7 +69,7 @@ export default function RecordingsScreen() {
         {
             id: '1',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T09:15:00',
+            timestamp: '2025-08-07T09:15:00',
             duration: '2:12',
             type: 'danger',
             severity: 'high',
@@ -80,7 +81,7 @@ export default function RecordingsScreen() {
         {
             id: '2',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T13:40:00',
+            timestamp: '2025-08-07T13:40:00',
             duration: '1:05',
             type: 'boundary',
             severity: 'medium',
@@ -92,112 +93,52 @@ export default function RecordingsScreen() {
         {
             id: '3',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T18:22:00',
+            timestamp: '2025-08-07T18:22:00',
             duration: '3:33',
             type: 'movement',
             severity: 'low',
             size: '178MB',
             thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
             description: '비정상적인 움직임 감지'
         },
         {
             id: '4',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T21:05:00',
+            timestamp: '2025-08-07T21:05:00',
             duration: '4:18',
             type: 'sleep',
             severity: 'low',
             size: '234MB',
             thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
             description: '수면 상태 변화 감지'
         },
         {
             id: '5',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T14:30:00',
+            timestamp: '2025-08-07T14:30:00',
             duration: '1:45',
             type: 'activity',
             severity: 'medium',
             size: '89MB',
             thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4',
             description: '높은 활동량 감지'
         },
         {
             id: '6',
             camera: 'TIBO 로봇캠',
-            timestamp: '2025-07-23T16:20:00',
+            timestamp: '2025-08-07T16:20:00',
             duration: '2:30',
             type: 'manual',
             severity: 'low',
             size: '28MB',
             thumbnail: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400&h=300&fit=crop&auto=format',
-            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
             description: '수동 녹화'
         }
     ];
-
-    // Computed values using useMemo for performance
-    const filters = useMemo(() => [
-        {
-            id: 'all',
-            label: '전체',
-            count: recordings.length,
-            icon: 'shield-checkmark',
-            color: theme.primary,
-            description: '모든 보호 활동'
-        },
-        {
-            id: 'danger',
-            label: '위험',
-            count: recordings.filter(r => r.type === 'danger').length,
-            icon: 'warning',
-            color: theme.error,
-            description: '위험 상황 감지'
-        },
-        {
-            id: 'boundary',
-            label: '경계',
-            count: recordings.filter(r => r.type === 'boundary').length,
-            icon: 'alert-circle',
-            color: theme.warning,
-            description: '경계선 침범'
-        },
-        {
-            id: 'movement',
-            label: '움직임',
-            count: recordings.filter(r => r.type === 'movement').length,
-            icon: 'eye',
-            color: theme.info,
-            description: '비정상 움직임'
-        },
-        {
-            id: 'sleep',
-            label: '수면',
-            count: recordings.filter(r => r.type === 'sleep').length,
-            icon: 'moon',
-            color: theme.primary,
-            description: '수면 상태 변화'
-        },
-        {
-            id: 'activity',
-            label: '활동',
-            count: recordings.filter(r => r.type === 'activity').length,
-            icon: 'fitness',
-            color: theme.success,
-            description: '높은 활동량'
-        },
-        {
-            id: 'manual',
-            label: '수동',
-            count: recordings.filter(r => r.type === 'manual').length,
-            icon: 'hand-right',
-            color: theme.textSecondary,
-            description: '수동 녹화'
-        },
-    ], [recordings, theme]);
 
     // Utility functions
     const isDateInRange = (date: Date): boolean => {
@@ -212,6 +153,71 @@ export default function RecordingsScreen() {
 
         return recordingDate >= startDate && recordingDate <= endDate;
     };
+
+    // Computed values using useMemo for performance
+    const filters = useMemo(() => {
+        // 선택된 날짜 범위 내의 recordings만 필터링
+        const dateFilteredRecordings = recordings.filter(r => isDateInRange(new Date(r.timestamp)));
+
+        return [
+            {
+                id: 'all',
+                label: '전체',
+                count: dateFilteredRecordings.length,
+                icon: 'shield-checkmark',
+                color: theme.primary,
+                description: '모든 보호 활동'
+            },
+            {
+                id: 'danger',
+                label: '위험',
+                count: dateFilteredRecordings.filter(r => r.type === 'danger').length,
+                icon: 'warning',
+                color: theme.error,
+                description: '위험 상황 감지'
+            },
+            {
+                id: 'boundary',
+                label: '경계',
+                count: dateFilteredRecordings.filter(r => r.type === 'boundary').length,
+                icon: 'alert-circle',
+                color: theme.warning,
+                description: '경계선 침범'
+            },
+            {
+                id: 'movement',
+                label: '움직임',
+                count: dateFilteredRecordings.filter(r => r.type === 'movement').length,
+                icon: 'eye',
+                color: theme.info,
+                description: '비정상 움직임'
+            },
+            {
+                id: 'sleep',
+                label: '수면',
+                count: dateFilteredRecordings.filter(r => r.type === 'sleep').length,
+                icon: 'moon',
+                color: theme.primary,
+                description: '수면 상태 변화'
+            },
+            {
+                id: 'activity',
+                label: '활동',
+                count: dateFilteredRecordings.filter(r => r.type === 'activity').length,
+                icon: 'fitness',
+                color: theme.success,
+                description: '높은 활동량'
+            },
+            {
+                id: 'manual',
+                label: '수동',
+                count: dateFilteredRecordings.filter(r => r.type === 'manual').length,
+                icon: 'hand-right',
+                color: theme.textSecondary,
+                description: '수동 녹화'
+            },
+        ];
+    }, [recordings, theme, selectedStartDate, selectedEndDate]);
 
     const filteredRecordings = useMemo(() => {
         const filtered = selectedFilter === 'all'
@@ -313,6 +319,22 @@ export default function RecordingsScreen() {
         }
     };
 
+    // 파일 크기 문자열을 바이트로 변환하는 함수
+    const parseFileSize = (sizeString: string): number => {
+        const match = sizeString.match(/^(\d+(?:\.\d+)?)\s*(KB|MB|GB)$/i);
+        if (!match) return 1024 * 1024; // 기본값 1MB
+
+        const size = parseFloat(match[1]);
+        const unit = match[2].toUpperCase();
+
+        switch (unit) {
+            case 'KB': return size * 1024;
+            case 'MB': return size * 1024 * 1024;
+            case 'GB': return size * 1024 * 1024 * 1024;
+            default: return size * 1024 * 1024; // 기본값 MB
+        }
+    };
+
     // Event handlers
     const handleDateRangeConfirm = (startDate: Date, endDate: Date): void => {
         setSelectedStartDate(startDate);
@@ -334,6 +356,7 @@ export default function RecordingsScreen() {
 
     const handleDownloadRecording = async (recording: Recording): Promise<void> => {
         try {
+            // 권한 체크
             const { status } = await MediaLibrary.requestPermissionsAsync();
 
             if (status !== 'granted') {
@@ -343,39 +366,106 @@ export default function RecordingsScreen() {
 
             setIsDownloading(true);
             setDownloadingFile(recording);
-            setDownloadProgress(0);
+            setDownloadProgress(0.01); // 1%로 시작
+
+            // 백엔드에 다운로드 로그 전송
+            try {
+                const { API_BASE_URL } = require('../config/api');
+                await fetch(`${API_BASE_URL}/recordings/download/log`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        recordingId: recording.id,
+                        userId: '1', // TODO: 실제 사용자 ID로 교체
+                        fileName: recording.description,
+                        fileSize: recording.size,
+                    }),
+                });
+            } catch (logError) {
+                console.warn('다운로드 로그 전송 실패:', logError);
+            }
+
+            // 다운로드 시작
+            console.log('📥 다운로드 시작:', recording.videoUrl);
+
+            // 파일 크기 추정 (mock 데이터의 size 필드에서 추정)
+            const estimatedFileSize = parseFileSize(recording.size);
+            console.log('📏 예상 파일 크기:', estimatedFileSize, 'bytes');
 
             const downloadResumable = FileSystem.createDownloadResumable(
                 recording.videoUrl,
                 FileSystem.documentDirectory + `recording_${recording.id}.mp4`,
                 {},
                 (downloadProgress) => {
-                    const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-                    setDownloadProgress(progress);
+                    console.log('📊 다운로드 진행 상황:', {
+                        written: downloadProgress.totalBytesWritten,
+                        expected: downloadProgress.totalBytesExpectedToWrite,
+                        ratio: downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite
+                    });
+
+                    // 예상 크기가 0이거나 undefined인 경우 처리
+                    if (downloadProgress.totalBytesExpectedToWrite <= 0) {
+                        // 파일 크기 추정값을 사용하여 진행률 계산
+                        const estimatedProgress = Math.min(downloadProgress.totalBytesWritten / estimatedFileSize, 0.99);
+                        setDownloadProgress(estimatedProgress);
+                        console.log('📊 예상 진행률:', Math.round(estimatedProgress * 100) + '%');
+                    } else {
+                        const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+                        const progressPercent = Math.round(progress * 100);
+                        console.log('📊 다운로드 진행률:', progressPercent + '%');
+
+                        // 진행률을 99%까지만 표시 (완료 시 100%로 설정)
+                        const clampedProgress = Math.min(progress, 0.99);
+                        setDownloadProgress(clampedProgress);
+                    }
                 }
             );
 
-            const { uri } = await downloadResumable.downloadAsync();
+            const result = await downloadResumable.downloadAsync();
+            console.log('📥 다운로드 결과:', result);
 
-            if (uri) {
-                const asset = await MediaLibrary.createAssetAsync(uri);
-                await MediaLibrary.createAlbumAsync('TIBO Recordings', asset, false);
-
-                setDownloadSuccessConfig({
-                    title: '다운로드 완료',
-                    message: '녹화 파일이 갤러리에 저장되었습니다.',
-                    fileName: recording.description,
-                    fileSize: recording.size,
-                });
-                setDownloadSuccessVisible(true);
-
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            if (!result || !result.uri) {
+                throw new Error('다운로드 실패: 파일을 받을 수 없습니다.');
             }
+
+            // 다운로드 완료 시 100%로 설정
+            setDownloadProgress(1);
+            console.log('✅ 다운로드 완료 (100%)');
+
+            // 갤러리에 저장
+            console.log('💾 갤러리에 저장 중...');
+            const asset = await MediaLibrary.createAssetAsync(result.uri);
+            await MediaLibrary.createAlbumAsync('TIBO Recordings', asset, false);
+            console.log('✅ 갤러리 저장 완료');
+
+            setDownloadSuccessConfig({
+                title: '다운로드 완료',
+                message: '녹화 파일이 갤러리에 저장되었습니다.',
+                fileName: recording.description,
+                fileSize: recording.size,
+            });
+            setDownloadSuccessVisible(true);
+
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {
             console.error('다운로드 오류:', error);
+
+            let errorMessage = '파일 다운로드에 실패했습니다.';
+            if (error instanceof Error) {
+                if (error.message.includes('Network')) {
+                    errorMessage = '네트워크 연결을 확인해주세요.';
+                } else if (error.message.includes('permission')) {
+                    errorMessage = '저장소 권한이 필요합니다.';
+                } else if (error.message.includes('storage')) {
+                    errorMessage = '저장 공간이 부족합니다.';
+                }
+            }
+
             setDownloadSuccessConfig({
                 title: '다운로드 실패',
-                message: '파일 다운로드에 실패했습니다.',
+                message: errorMessage,
                 fileName: recording.description,
                 fileSize: recording.size,
             });
@@ -394,10 +484,14 @@ export default function RecordingsScreen() {
                 FileSystem.documentDirectory + `share_${recording.id}.mp4`
             );
 
-            const { uri } = await downloadResumable.downloadAsync();
+            const result = await downloadResumable.downloadAsync();
+
+            if (!result || !result.uri) {
+                throw new Error('파일 다운로드에 실패했습니다.');
+            }
 
             if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(uri, {
+                await Sharing.shareAsync(result.uri, {
                     mimeType: 'video/mp4',
                     dialogTitle: recording.description,
                     UTI: 'public.movie'
@@ -476,18 +570,20 @@ export default function RecordingsScreen() {
         setActionSheetVisible(true);
     };
 
-    const handleHeaderMenu = (): void => {
-        Alert.alert(
-            '녹화 관리',
-            '추가 옵션을 선택하세요',
-            [
-                { text: '전체 다운로드', onPress: () => console.log('전체 다운로드') },
-                { text: '일괄 삭제', onPress: () => console.log('일괄 삭제') },
-                { text: '백업 설정', onPress: () => console.log('백업 설정') },
-                { text: '취소', style: 'cancel' }
-            ]
-        );
-    };
+    // 화면 진입 시 세로모드로 고정
+    useEffect(() => {
+        const lockToPortrait = async () => {
+            try {
+                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                console.log('화면이 세로모드로 고정되었습니다.');
+            } catch (error) {
+                console.error('화면 락 실패:', error);
+            }
+        };
+
+        lockToPortrait();
+    }, []);
+
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
@@ -504,7 +600,6 @@ export default function RecordingsScreen() {
                 <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
                 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
                         <View style={{
@@ -552,27 +647,6 @@ export default function RecordingsScreen() {
                             </Text>
                         </View>
                     </View>
-
-                    <TouchableOpacity
-                        style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 24,
-                            backgroundColor: 'rgba(248, 250, 252, 0.8)',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderWidth: 1,
-                            borderColor: 'rgba(255, 255, 255, 0.4)',
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.05,
-                            shadowRadius: 4,
-                            elevation: 2,
-                        }}
-                        onPress={handleHeaderMenu}
-                    >
-                        <Ionicons name="ellipsis-horizontal" size={22} color={theme.textSecondary} />
-                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -1104,7 +1178,7 @@ export default function RecordingsScreen() {
             {/* 다운로드 진행률 모달 */}
             <DownloadProgressModal
                 isVisible={isDownloading}
-                progress={downloadProgress}
+                progress={downloadProgress * 100} // 0-1을 0-100으로 변환
                 fileName={downloadingFile?.description || ''}
                 fileSize={downloadingFile?.size}
                 onCancel={handleCancelDownload}

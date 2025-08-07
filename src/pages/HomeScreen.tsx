@@ -37,6 +37,7 @@ import { BatteryCard } from '../components/atoms/BatteryCard';
 import { WiFiCard } from '../components/atoms/WiFiCard';
 import { liveStreamService, LiveStreamState } from '../services/LiveStreamService';
 import CaptureNotification from '../components/atoms/CaptureNotification';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 // Performance optimized animated components
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -701,6 +702,20 @@ export default function HomeScreen({ onNavigateToEvents }: { onNavigateToEvents?
 
         return unsubscribe;
     }, [statusOpacity]);
+
+    // 화면 진입 시 세로모드로 고정
+    useEffect(() => {
+        const lockToPortrait = async () => {
+            try {
+                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+                console.log('Screen orientation locked to PORTRAIT_UP');
+            } catch (error) {
+                console.error('Failed to lock screen orientation:', error);
+            }
+        };
+
+        lockToPortrait();
+    }, []);
 
     // Enhanced action handlers
     const handleStartLiveStream = useCallback(async () => {
