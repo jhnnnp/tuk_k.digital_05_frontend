@@ -26,10 +26,12 @@ import Animated, {
     useDerivedValue,
     runOnJS,
     Layout,
-    FadeIn
+    FadeIn,
+    useAnimatedGestureHandler
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { PanGestureHandler, PanGestureHandlerGestureEvent } from 'react-native-gesture-handler';
 import { useTheme } from '../styles/ThemeProvider';
 import { BatteryCard } from '../components/atoms/BatteryCard';
 import { WiFiCard } from '../components/atoms/WiFiCard';
@@ -109,10 +111,70 @@ const mockEvents: Event[] = [
         icon: 'shield-outline',
         iconColor: '#2196F3',
         statusColor: '#FF9800'
+    },
+    {
+        id: '5',
+        type: 'system',
+        title: '시스템 업데이트',
+        description: '펌웨어가 성공적으로 업데이트되었습니다',
+        timestamp: '18분 전',
+        icon: 'refresh-outline',
+        iconColor: '#9C27B0',
+        statusColor: '#9C27B0'
+    },
+    {
+        id: '6',
+        type: 'motion',
+        title: '모션 감지됨',
+        description: '주방에서 움직임이 감지되었습니다',
+        timestamp: '25분 전',
+        icon: 'eye-outline',
+        iconColor: '#FF9800',
+        statusColor: '#FF9800'
+    },
+    {
+        id: '7',
+        type: 'recording',
+        title: '녹화 중지',
+        description: '자동 녹화가 중지되었습니다',
+        timestamp: '32분 전',
+        icon: 'stop-circle-outline',
+        iconColor: '#F44336',
+        statusColor: '#F44336'
+    },
+    {
+        id: '8',
+        type: 'patrol',
+        title: '순찰 시작',
+        description: '자동 순찰이 시작되었습니다',
+        timestamp: '45분 전',
+        icon: 'play-circle-outline',
+        iconColor: '#4CAF50',
+        statusColor: '#4CAF50'
+    },
+    {
+        id: '9',
+        type: 'security',
+        title: '보안 모드 비활성화',
+        description: '재실 모드로 전환되었습니다',
+        timestamp: '1시간 전',
+        icon: 'shield-checkmark-outline',
+        iconColor: '#2196F3',
+        statusColor: '#4CAF50'
+    },
+    {
+        id: '10',
+        type: 'system',
+        title: '배터리 충전 완료',
+        description: '배터리 충전이 완료되었습니다',
+        timestamp: '1시간 15분 전',
+        icon: 'battery-charging-outline',
+        iconColor: '#4CAF50',
+        statusColor: '#4CAF50'
     }
 ];
 
-export default function HomeScreen() {
+export default function HomeScreen({ onNavigateToEvents }: { onNavigateToEvents?: () => void }) {
     const { theme } = useTheme();
 
     // 화면 크기에 따른 동적 패딩 계산
@@ -124,7 +186,7 @@ export default function HomeScreen() {
     const [streamState, setStreamState] = useState<LiveStreamState>(liveStreamService.getState());
     const [isPatrolling, setIsPatrolling] = useState(false);
     const [isMovingToHome, setIsMovingToHome] = useState(false);
-    const [events] = useState<Event[]>(mockEvents);
+    const [events, setEvents] = useState<Event[]>(mockEvents);
 
     // Animated values for enhanced UX
     const headerScale = useSharedValue(1);
@@ -134,7 +196,7 @@ export default function HomeScreen() {
 
     const [robot, setRobot] = useState<RobotCamera>({
         id: 'tibo-001',
-        name: 'TIBO 로봇캠',
+        name: 'TIBO ON AIR',
         location: '거실',
         isOnline: true,
         isMoving: false,
@@ -161,6 +223,58 @@ export default function HomeScreen() {
             maxWidth: isLargeScreen ? 1400 : undefined,
             alignSelf: isLargeScreen ? 'center' : 'stretch',
         },
+        headerContainer: {
+            marginBottom: 24,
+        },
+        headerCard: {
+            backgroundColor: theme.surface,
+            borderRadius: 10,
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
+            elevation: 4,
+            borderWidth: 1,
+            borderColor: theme.outline + '15',
+            overflow: 'hidden',
+            position: 'relative',
+        },
+        headerGradient: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: 10,
+        },
+        headerHighlight: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 12,
+            borderRadius: 10,
+        },
+        headerContent: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        logoContainer: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 100,
+            width: 120,
+            marginRight: -10,
+            marginTop: 15,
+        },
+        logoImage: {
+            width: 189,
+            height: 141.75,
+            opacity: 0.9,
+        },
         header: {
             flexDirection: 'row' as const,
             alignItems: 'center',
@@ -186,16 +300,21 @@ export default function HomeScreen() {
             borderRadius: 16,
             paddingHorizontal: 12,
             paddingVertical: 6,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.06,
             shadowRadius: 4,
-            elevation: 4,
+            elevation: 2,
         },
         statusText: {
             fontFamily: 'GoogleSans-Bold',
-            fontSize: 11,
+            fontSize: 9,
             fontWeight: '700',
+            letterSpacing: 0.3,
+            textTransform: 'uppercase',
         },
         subtitle: {
             fontFamily: 'GoogleSans-Regular',
@@ -203,19 +322,16 @@ export default function HomeScreen() {
             color: theme.textSecondary,
             opacity: 0.8,
         },
-        menuButton: {
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: theme.surfaceVariant,
-            alignItems: 'center',
-            justifyContent: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 4,
+        teamText: {
+            fontFamily: 'GoogleSans-Bold',
+            fontSize: 12,
+            color: theme.primary,
+            fontWeight: '700',
+            marginBottom: 4,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
         },
+
         mainCard: {
             backgroundColor: theme.surface,
             borderRadius: 24,
@@ -233,7 +349,7 @@ export default function HomeScreen() {
             flexDirection: 'row' as const,
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: 16,
+            marginBottom: 8,
         },
         robotInfo: {
             flexDirection: 'row' as const,
@@ -255,6 +371,31 @@ export default function HomeScreen() {
             fontSize: 18,
             color: theme.textPrimary,
             fontWeight: '700',
+            marginVertical: 2,
+            letterSpacing: 1.2,
+        },
+        robotNameContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+        },
+        onAirBadge: {
+            backgroundColor: theme.error,
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 12,
+            shadowColor: theme.error,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 4,
+        },
+        onAirText: {
+            fontFamily: 'GoogleSans-Bold',
+            fontSize: 10,
+            color: '#fff',
+            fontWeight: '700',
+            letterSpacing: 0.8,
         },
         locationRow: {
             flexDirection: 'row' as const,
@@ -461,17 +602,24 @@ export default function HomeScreen() {
             color: theme.textPrimary,
             fontWeight: '700',
         },
-        seeMoreButton: {
+        devButtonsContainer: {
+            flexDirection: 'row' as const,
+            gap: 8,
+        },
+        devButton: {
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 8,
             flexDirection: 'row' as const,
             alignItems: 'center',
             gap: 4,
         },
-        seeMoreText: {
+        devButtonText: {
             fontFamily: 'GoogleSans-Medium',
-            fontSize: 14,
-            color: theme.primary,
+            fontSize: 11,
             fontWeight: '600',
         },
+
         eventsContainer: {
             gap: 12,
         },
@@ -524,6 +672,7 @@ export default function HomeScreen() {
             height: 8,
             borderRadius: 4,
         },
+
     }), [theme]);
 
     // Enhanced animated styles
@@ -640,28 +789,37 @@ export default function HomeScreen() {
         );
     }, [isMovingToHome]);
 
-    const handleMenuPress = useCallback(() => {
-        headerScale.value = withSpring(0.95, { damping: 15 }, () => {
-            headerScale.value = withSpring(1, { damping: 15 });
-        });
 
-        Alert.alert(
-            '메뉴',
-            '추가 옵션을 선택하세요',
-            [
-                { text: '카메라 설정', onPress: () => console.log('카메라 설정') },
-                { text: '시스템 정보', onPress: () => console.log('시스템 정보') },
-                { text: '연결 상태', onPress: () => console.log('연결 상태') },
-                { text: '취소', style: 'cancel' }
-            ]
-        );
-    }, [headerScale]);
 
-    const handleSeeMoreEvents = useCallback(() => {
-        Alert.alert('이벤트 로그', '전체 이벤트 로그를 확인할 수 있습니다.');
-    }, []);
+
 
     const [showCaptureNotification, setShowCaptureNotification] = useState(false);
+
+    // 개발자 모드 이벤트 관리 핸들러
+    const handleAddMockEvent = useCallback(() => {
+        const newEvent: Event = {
+            id: `mock-${Date.now()}`,
+            type: 'system',
+            title: '새 이벤트 추가됨',
+            description: `개발자 모드로 추가된 이벤트 (${new Date().toLocaleTimeString()})`,
+            timestamp: '방금 전',
+            icon: 'add-circle-outline',
+            iconColor: '#9C27B0',
+            statusColor: '#9C27B0'
+        };
+        setEvents(prev => [newEvent, ...prev]);
+    }, []);
+
+    const handleRemoveMockEvent = useCallback(() => {
+        if (events.length > 0) {
+            setEvents(prev => prev.slice(1)); // 첫 번째 이벤트 제거
+        }
+    }, [events.length]);
+
+    // 슬라이드 제거 핸들러
+    const handleRemoveEvent = useCallback((eventId: string) => {
+        setEvents(prev => prev.filter(event => event.id !== eventId));
+    }, []);
 
     const handleCameraPress = useCallback(() => {
         // 카메라 버튼 애니메이션
@@ -717,30 +875,85 @@ export default function HomeScreen() {
         </View>
     ));
 
-    // Event card component
-    const EventCard = React.memo(({ event }: { event: Event }) => (
-        <View style={themedStyles.eventCard}>
-            <View style={[
-                themedStyles.eventIconContainer,
-                { backgroundColor: event.iconColor + '20' }
-            ]}>
-                <Ionicons
-                    name={event.icon as any}
-                    size={20}
-                    color={event.iconColor}
-                />
-            </View>
-            <View style={themedStyles.eventContent}>
-                <Text style={themedStyles.eventTitle}>{event.title}</Text>
-                <Text style={themedStyles.eventDescription}>{event.description}</Text>
-                <Text style={themedStyles.eventTimestamp}>{event.timestamp}</Text>
-            </View>
-            <View style={[
-                themedStyles.eventStatusDot,
-                { backgroundColor: event.statusColor }
-            ]} />
-        </View>
-    ));
+    // Swipeable Event card component
+    const SwipeableEventCard = React.memo(({ event }: { event: Event }) => {
+        const translateX = useSharedValue(0);
+        const scale = useSharedValue(1);
+        const opacity = useSharedValue(1);
+        const { theme } = useTheme();
+        const eventId = event.id; // 클로저에서 사용할 ID
+
+        const panGestureEvent = useAnimatedGestureHandler<PanGestureHandlerGestureEvent>({
+            onStart: () => { },
+            onActive: (event) => {
+                if (event.translationX < 0) {
+                    translateX.value = event.translationX;
+                    // 스와이프 거리에 따라 스케일과 투명도 조정
+                    const progress = Math.abs(event.translationX) / 100;
+                    scale.value = withSpring(1 - progress * 0.05, { damping: 15 });
+                    opacity.value = withSpring(1 - progress * 0.1, { damping: 15 });
+                }
+            },
+            onEnd: (event) => {
+                if (event.translationX < -80) {
+                    // 삭제 임계값 도달 - 부드러운 삭제 애니메이션
+                    translateX.value = withTiming(-200, {
+                        duration: 300,
+                        easing: (t) => 1 - Math.pow(1 - t, 3) // easeOutCubic
+                    });
+                    scale.value = withTiming(0.8, { duration: 300 });
+                    opacity.value = withTiming(0, { duration: 300 }, () => {
+                        runOnJS(handleRemoveEvent)(eventId);
+                    });
+                } else {
+                    // 원위치로 복귀 - 스프링 애니메이션
+                    translateX.value = withSpring(0, {
+                        damping: 15,
+                        stiffness: 150,
+                        mass: 0.8
+                    });
+                    scale.value = withSpring(1, { damping: 15 });
+                    opacity.value = withSpring(1, { damping: 15 });
+                }
+            },
+        });
+
+        const animatedStyle = useAnimatedStyle(() => ({
+            transform: [
+                { translateX: translateX.value },
+                { scale: scale.value }
+            ],
+            opacity: opacity.value,
+        }));
+
+
+
+        return (
+            <PanGestureHandler onGestureEvent={panGestureEvent}>
+                <Animated.View style={[themedStyles.eventCard, animatedStyle]}>
+                    <View style={[
+                        themedStyles.eventIconContainer,
+                        { backgroundColor: event.iconColor + '20' }
+                    ]}>
+                        <Ionicons
+                            name={event.icon as any}
+                            size={20}
+                            color={event.iconColor}
+                        />
+                    </View>
+                    <View style={themedStyles.eventContent}>
+                        <Text style={themedStyles.eventTitle}>{event.title}</Text>
+                        <Text style={themedStyles.eventDescription}>{event.description}</Text>
+                        <Text style={themedStyles.eventTimestamp}>{event.timestamp}</Text>
+                    </View>
+                    <View style={[
+                        themedStyles.eventStatusDot,
+                        { backgroundColor: event.statusColor }
+                    ]} />
+                </Animated.View>
+            </PanGestureHandler>
+        );
+    });
 
     return (
         <SafeAreaView style={themedStyles.container}>
@@ -758,37 +971,66 @@ export default function HomeScreen() {
                 style={isLargeScreen ? { alignSelf: 'center', maxWidth: 1400 } : undefined}
             >
                 {/* 헤더: FadeIn만 적용 */}
-                <Animated.View entering={FadeIn.duration(300)} style={themedStyles.header}>
-                    <View style={themedStyles.brandContainer}>
-                        <View style={themedStyles.brandRow}>
-                            <Text style={themedStyles.brandText}>TIBO</Text>
-                            <View style={[
-                                themedStyles.statusBadge,
-                                { backgroundColor: robot.isOnline ? theme.online : theme.offline }
-                            ]}>
-                                <Text style={[
-                                    themedStyles.statusText,
-                                    { color: theme.onPrimary }
-                                ]}>
-                                    {robot.isOnline ? '온라인' : '오프라인'}
+                <Animated.View entering={FadeIn.duration(300)} style={themedStyles.headerContainer}>
+                    <View style={themedStyles.headerCard}>
+                        {/* 그라데이션 배경 오버레이 */}
+                        <LinearGradient
+                            colors={[theme.primary + '06', 'transparent', theme.primary + '02']}
+                            style={themedStyles.headerGradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                        />
+
+                        {/* 미묘한 하이라이트 효과 */}
+                        <LinearGradient
+                            colors={['rgba(255,255,255,0.1)', 'transparent']}
+                            style={themedStyles.headerHighlight}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                        />
+
+                        <View style={themedStyles.headerContent}>
+                            <View style={themedStyles.brandContainer}>
+                                <View style={themedStyles.brandRow}>
+                                    <Text style={themedStyles.brandText}>TIBO</Text>
+                                    <View style={[
+                                        themedStyles.statusBadge,
+                                        {
+                                            backgroundColor: robot.isOnline ? theme.success + '15' : theme.error + '15',
+                                            borderColor: robot.isOnline ? theme.success : theme.error,
+                                            borderWidth: 1
+                                        }
+                                    ]}>
+                                        <View style={[
+                                            themedStyles.statusDot,
+                                            { backgroundColor: robot.isOnline ? theme.success : theme.error }
+                                        ]} />
+                                        <Text style={[
+                                            themedStyles.statusText,
+                                            { color: robot.isOnline ? theme.success : theme.error }
+                                        ]}>
+                                            {robot.isOnline ? 'ONLINE' : 'OFFLINE'}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Text style={themedStyles.teamText}>
+                                    KDT PROJECT TEAM 5
+                                </Text>
+                                <Text style={themedStyles.subtitle}>
+                                    스마트 홈 로봇 카메라 시스템
                                 </Text>
                             </View>
-                        </View>
-                        <Text style={themedStyles.subtitle}>
-                            스마트 홈 로봇 카메라 시스템
-                        </Text>
-                    </View>
 
-                    <TouchableOpacity
-                        style={themedStyles.menuButton}
-                        onPress={handleMenuPress}
-                    >
-                        <Ionicons
-                            name="ellipsis-horizontal"
-                            size={20}
-                            color={theme.textSecondary}
-                        />
-                    </TouchableOpacity>
+                            {/* 한국공학대학교 로고 */}
+                            <View style={themedStyles.logoContainer}>
+                                <Image
+                                    source={require('../assets/tukorea logo.png')}
+                                    style={themedStyles.logoImage}
+                                    resizeMode="contain"
+                                />
+                            </View>
+                        </View>
+                    </View>
                 </Animated.View>
 
                 {/* 메인 카드: FadeIn만 적용 */}
@@ -807,9 +1049,16 @@ export default function HomeScreen() {
                                 }
                             ]} />
                             <View>
-                                <Text style={themedStyles.robotName}>
-                                    {robot.name}
-                                </Text>
+                                <View style={themedStyles.robotNameContainer}>
+                                    <Text style={themedStyles.robotName}>
+                                        TIBO
+                                    </Text>
+                                    <View style={themedStyles.onAirBadge}>
+                                        <Text style={themedStyles.onAirText}>
+                                            ON AIR
+                                        </Text>
+                                    </View>
+                                </View>
                                 {robot.isMoving && (
                                     <View style={[
                                         themedStyles.movingBadge,
@@ -854,28 +1103,7 @@ export default function HomeScreen() {
                             style={themedStyles.gradientOverlay}
                         />
 
-                        {/* Enhanced Live Badge */}
-                        {robot.isOnline && (
-                            <BlurView
-                                intensity={20}
-                                style={themedStyles.liveBadge}
-                            >
-                                <View style={themedStyles.liveRow}>
-                                    <View
-                                        style={[
-                                            themedStyles.liveDot,
-                                            { backgroundColor: theme.onPrimary }
-                                        ]}
-                                    />
-                                    <Text style={[
-                                        themedStyles.liveText,
-                                        { color: theme.onPrimary }
-                                    ]}>
-                                        LIVE
-                                    </Text>
-                                </View>
-                            </BlurView>
-                        )}
+
 
                         {/* Enhanced Recording Indicator */}
                         {streamState.isRecording && (
@@ -942,22 +1170,43 @@ export default function HomeScreen() {
                 <Animated.View entering={FadeIn.duration(300)} style={[themedStyles.eventsSection, { marginTop: 0 }]}>
                     <View style={themedStyles.eventsHeader}>
                         <Text style={themedStyles.eventsTitle}>최근 이벤트</Text>
-                        <TouchableOpacity
-                            style={themedStyles.seeMoreButton}
-                            onPress={handleSeeMoreEvents}
-                        >
-                            <Text style={themedStyles.seeMoreText}>더보기</Text>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={16}
-                                color={theme.primary}
-                            />
-                        </TouchableOpacity>
+                        <View style={themedStyles.devButtonsContainer}>
+                            <TouchableOpacity
+                                style={[
+                                    themedStyles.devButton,
+                                    { backgroundColor: theme.success + '20' }
+                                ]}
+                                onPress={handleAddMockEvent}
+                            >
+                                <Ionicons name="add" size={12} color={theme.success} />
+                                <Text style={[
+                                    themedStyles.devButtonText,
+                                    { color: theme.success }
+                                ]}>
+                                    Mock 추가
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    themedStyles.devButton,
+                                    { backgroundColor: theme.error + '20' }
+                                ]}
+                                onPress={handleRemoveMockEvent}
+                            >
+                                <Ionicons name="remove" size={12} color={theme.error} />
+                                <Text style={[
+                                    themedStyles.devButtonText,
+                                    { color: theme.error }
+                                ]}>
+                                    Mock 제거
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     <View style={themedStyles.eventsContainer}>
                         {events.map((event, index) => (
-                            <EventCard key={event.id} event={event} />
+                            <SwipeableEventCard key={event.id} event={event} />
                         ))}
                     </View>
                 </Animated.View>

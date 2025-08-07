@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import AppLockModal from './components/atoms/AppLockModal';
 import { userDataService } from './services/UserDataService';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // 네비게이션을 사용하기 위한 래퍼 컴포넌트
 function AppContent() {
@@ -179,18 +180,20 @@ function AppContent() {
 
 export default function App() {
     return (
-        <Provider store={store}>
-            <PersistGate loading={null} persistor={persistor}>
-                <SafeAreaProvider>
-                    <ThemeProvider>
-                        <UserDataProvider>
-                            <NavigationContainer>
-                                <AppContent />
-                            </NavigationContainer>
-                        </UserDataProvider>
-                    </ThemeProvider>
-                </SafeAreaProvider>
-            </PersistGate>
-        </Provider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <Provider store={store}>
+                <PersistGate loading={null} persistor={persistor}>
+                    <SafeAreaProvider>
+                        <ThemeProvider>
+                            <UserDataProvider>
+                                <NavigationContainer>
+                                    <AppContent />
+                                </NavigationContainer>
+                            </UserDataProvider>
+                        </ThemeProvider>
+                    </SafeAreaProvider>
+                </PersistGate>
+            </Provider>
+        </GestureHandlerRootView>
     );
 } 
