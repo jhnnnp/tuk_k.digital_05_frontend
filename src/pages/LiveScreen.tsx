@@ -42,6 +42,7 @@ import { WiFiCard } from '../components/atoms/WiFiCard';
 import { Card } from '../components/layout/Card';
 import { Joystick } from '../components/atoms/Joystick';
 import { liveStreamService, LiveStreamState } from '../services/LiveStreamService';
+import { mqttService, MqttCameraStatus, MqttMotionEvent, MqttSoundEvent, MqttPtzPosition } from '../services/MqttService';
 import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeedbackCircleButton from '../components/atoms/FeedbackCircleButton';
@@ -141,6 +142,11 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
     const [streamState, setStreamState] = useState<LiveStreamState>(liveStreamService.getState());
     const [showCaptureToast, setShowCaptureToast] = useState(false);
 
+    // MQTT 연결 상태
+    const [mqttConnected, setMqttConnected] = useState(false);
+    const [lastMotionEvent, setLastMotionEvent] = useState<MqttMotionEvent | null>(null);
+    const [lastSoundEvent, setLastSoundEvent] = useState<MqttSoundEvent | null>(null);
+
 
     // Animated values for enhanced UX
     const zoomScale = useSharedValue(1);
@@ -193,6 +199,79 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
         }
     }, [videoSizeScale, onFullscreen]);
 
+    // MQTT 연결 및 이벤트 처리
+    useEffect(() => {
+        const connectMqtt = async () => {
+            try {
+                // MQTT 브로커 연결 (실제 환경에서는 환경변수로 설정)
+                const brokerUrl = 'mqtt://192.168.0.8:1883'; // 라즈베리파이 IP
+                const connected = await mqttService.connect(brokerUrl, camera.id);
+
+                if (connected) {
+                    console.log('✅ MQTT 연결 성공');
+
+                    // 연결 상태 구독
+                    mqttService.onConnectionChange((connected) => {
+                        setMqttConnected(connected);
+                        console.log('🔗 MQTT 연결 상태:', connected ? '연결됨' : '연결 해제됨');
+                    });
+
+                    // 카메라 상태 구독
+                    mqttService.subscribe(`tibo/camera/${camera.id}/status`, (data: MqttCameraStatus) => {
+                        console.log('📊 카메라 상태 업데이트:', data);
+                        setCamera(prev => ({
+                            ...prev,
+                            status: data.status,
+                            stats: {
+                                ...prev.stats,
+                                batteryLevel: data.stats.battery_level,
+                                wifiSignal: data.stats.wifi_signal,
+                                temperature: data.stats.temperature
+                            }
+                        }));
+                    });
+
+                    // 모션 이벤트 구독
+                    mqttService.subscribe(`tibo/camera/${camera.id}/motion`, (data: MqttMotionEvent) => {
+                        console.log('👤 모션 이벤트 감지:', data);
+                        setLastMotionEvent(data);
+
+                        // 모션 이벤트 알림
+                        Toast.show({
+                            type: 'info',
+                            text1: '모션 감지됨',
+                            text2: `${data.event_type} 이벤트가 감지되었습니다.`,
+                            position: 'top'
+                        });
+                    });
+
+                    // 소리 이벤트 구독
+                    mqttService.subscribe(`tibo/camera/${camera.id}/sound`, (data: MqttSoundEvent) => {
+                        console.log('🔊 소리 이벤트 감지:', data);
+                        setLastSoundEvent(data);
+
+                        // 소리 이벤트 알림
+                        Toast.show({
+                            type: 'warning',
+                            text1: '소리 감지됨',
+                            text2: `${data.sound_type} 소리가 감지되었습니다.`,
+                            position: 'top'
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('❌ MQTT 연결 실패:', error);
+            }
+        };
+
+        connectMqtt();
+
+        // 컴포넌트 언마운트 시 MQTT 연결 해제
+        return () => {
+            mqttService.disconnect();
+        };
+    }, [camera.id]);
+
     // Live stream state subscription with cleanup
     useEffect(() => {
         console.log('[전체화면] 컴포넌트 마운트');
@@ -220,18 +299,51 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
         switch (actionId) {
             case 'record':
                 liveStreamService.toggleRecording();
+                // MQTT로 녹화 명령 전송
+                if (mqttConnected) {
+                    const action = streamState.isRecording ? 'stop' : 'start';
+                    mqttService.sendRecordingCommand(camera.id, action);
+                }
                 break;
             case 'voice':
                 liveStreamService.toggleMic();
                 break;
             case 'zoomIn':
                 handleZoomIn();
+                // MQTT로 줌인 명령 전송
+                if (mqttConnected) {
+                    const ptzCommand = {
+                        type: 'move',
+                        position: {
+                            pan: 0,
+                            tilt: 0,
+                            zoom: Math.min(10, 1 + (zoomScale.value * 0.5))
+                        },
+                        speed: 5,
+                        duration: 500
+                    };
+                    mqttService.sendPtzCommand(camera.id, ptzCommand);
+                }
                 // 줌인 버튼을 눌렀다가 바로 꺼지는 효과
                 setSelectedAction(actionId);
                 setTimeout(() => setSelectedAction(null), 150);
                 break;
             case 'zoomOut':
                 handleZoomOut();
+                // MQTT로 줌아웃 명령 전송
+                if (mqttConnected) {
+                    const ptzCommand = {
+                        type: 'move',
+                        position: {
+                            pan: 0,
+                            tilt: 0,
+                            zoom: Math.max(1, zoomScale.value - 0.5)
+                        },
+                        speed: 5,
+                        duration: 500
+                    };
+                    mqttService.sendPtzCommand(camera.id, ptzCommand);
+                }
                 // 줌아웃 버튼을 눌렀다가 바로 꺼지는 효과
                 setSelectedAction(actionId);
                 setTimeout(() => setSelectedAction(null), 150);
@@ -265,17 +377,15 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
     }, [zoomScale]);
 
     const handleCapture = useCallback(() => {
-        // 부드러운 캡쳐 애니메이션
-        videoOpacity.value = withTiming(0.3, { duration: 150 }, () => {
-            videoOpacity.value = withTiming(1, { duration: 200 });
-        });
+        console.log('[캡처] 버튼 터치됨');
 
-        // 프로페셔널한 캡쳐 완료 피드백
+        // MQTT로 캡처 명령 전송
+        mqttService.sendCaptureCommand(camera.id);
+
+        // UI 피드백
         setShowCaptureToast(true);
-
-        // 실제 캡쳐 로직이 있다면 이곳에 추가
-        // 예: saveScreenshotToGallery();
-    }, [videoOpacity]);
+        setTimeout(() => setShowCaptureToast(false), 2000);
+    }, [camera.id]);
 
     // Fixed Joystick handler to match the expected interface
     const handleJoystickMove = useCallback((dx: number, dy: number) => {
@@ -284,8 +394,24 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
 
         if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
             console.log(`로봇 이동: X=${dx.toFixed(2)}, Y=${dy.toFixed(2)}`);
+
+            // MQTT로 PTZ 명령 전송
+            if (mqttConnected) {
+                const ptzCommand = {
+                    type: 'move',
+                    position: {
+                        pan: dx * 180, // -180 to 180 degrees
+                        tilt: dy * 90,  // -90 to 90 degrees
+                        zoom: 1         // 기본 줌 레벨
+                    },
+                    speed: Math.max(Math.abs(dx), Math.abs(dy)) * 10, // 1-10
+                    duration: 1000 // 1초
+                };
+
+                mqttService.sendPtzCommand(camera.id, ptzCommand);
+            }
         }
-    }, []);
+    }, [mqttConnected, camera.id]);
 
     // Modern and cute toggle switch component
     const ModernToggleSwitch = React.memo(({
@@ -449,7 +575,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
                                 return null;
                             })()}
                             <Animated.Image
-                                source={{ uri: camera.thumbnail }}
+                                source={require('../assets/baby.jpeg')}
                                 style={[styles.videoImage, videoAnimatedStyle]}
                             />
                             {/* Gradient Overlay */}
@@ -470,7 +596,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
                                 </View>
                             </Animated.View>
                             {/* Enhanced Status Indicators */}
-                            {insets.top > 0 && streamState && (streamState.isRecording || streamState.isMicOn) && (
+                            {insets.top > 0 && (
                                 <View
                                     style={{
                                         position: 'absolute',
@@ -480,8 +606,15 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
                                         alignItems: 'flex-end',
                                     }}
                                 >
-                                    {streamState.isRecording && <StatusBadge color="#F44336" text="REC" />}
-                                    {streamState.isMicOn && <StatusBadge color="#4A90E2" text="MIC" />}
+                                    {/* MQTT 연결 상태 */}
+                                    <StatusBadge
+                                        color={mqttConnected ? "#10b981" : "#ef4444"}
+                                        text={mqttConnected ? "MQTT" : "OFF"}
+                                    />
+
+                                    {/* 녹화/마이크 상태 */}
+                                    {streamState && streamState.isRecording && <StatusBadge color="#F44336" text="REC" />}
+                                    {streamState && streamState.isMicOn && <StatusBadge color="#4A90E2" text="MIC" />}
                                 </View>
                             )}
 
