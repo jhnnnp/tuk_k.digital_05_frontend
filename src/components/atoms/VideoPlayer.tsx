@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -8,10 +8,14 @@ import {
     Dimensions,
     SafeAreaView,
     StatusBar,
+    Platform,
+    Alert,
+    BackHandler,
 } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { unifiedTheme as theme } from '../../styles/theme';
+import NativeVideoPlayerService from '../../services/NativeVideoPlayerService';
 
 interface VideoPlayerProps {
     videoUri: string;
@@ -29,36 +33,54 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     onClose,
 }) => {
     const [status, setStatus] = useState<any>({});
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const videoRef = useRef<Video>(null);
+
+    // Android 뒤로가기 버튼 처리
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (isVisible) {
+                onClose();
+                return true;
+            }
+            return false;
+        });
+
+        return () => backHandler.remove();
+    }, [isVisible, onClose]);
 
     const handlePlaybackStatusUpdate = (status: any) => {
         setStatus(status);
     };
 
-    const handlePlayPause = async () => {
-        if (status.isPlaying) {
-            await videoRef.current?.pauseAsync();
-        } else {
-            await videoRef.current?.playAsync();
+    // 외부 네이티브 비디오 플레이어로 열기
+    const openInNativePlayer = async () => {
+        try {
+            await NativeVideoPlayerService.openInNativePlayer({
+                videoUri,
+                title,
+                description: title
+            });
+        } catch (error) {
+            console.error('외부 플레이어 열기 실패:', error);
+            Alert.alert('오류', '비디오를 열 수 없습니다.');
         }
     };
 
-    const handleSeek = async (position: number) => {
-        await videoRef.current?.setPositionAsync(position);
-    };
-
-    const formatTime = (milliseconds: number) => {
-        const totalSeconds = Math.floor(milliseconds / 1000);
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    };
-
-    const getProgress = () => {
-        if (status.durationMillis && status.positionMillis) {
-            return status.positionMillis / status.durationMillis;
+    // 전체화면 토글
+    const toggleFullscreen = async () => {
+        try {
+            if (videoRef.current) {
+                if (isFullscreen) {
+                    await videoRef.current.presentFullscreenPlayer();
+                } else {
+                    await videoRef.current.dismissFullscreenPlayer();
+                }
+                setIsFullscreen(!isFullscreen);
+            }
+        } catch (error) {
+            console.error('전체화면 토글 실패:', error);
         }
-        return 0;
     };
 
     return (
@@ -84,7 +106,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         {title}
                     </Text>
 
-                    <View style={styles.headerSpacer} />
+                    <View style={styles.headerButtons}>
+                        <TouchableOpacity
+                            style={styles.headerButton}
+                            onPress={toggleFullscreen}
+                        >
+                            <Ionicons
+                                name={isFullscreen ? "contract" : "expand"}
+                                size={20}
+                                color="#fff"
+                            />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.headerButton}
+                            onPress={openInNativePlayer}
+                        >
+                            <Ionicons
+                                name={Platform.OS === 'ios' ? "play-circle" : "play-circle"}
+                                size={20}
+                                color="#fff"
+                            />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Video Player */}
@@ -93,65 +137,31 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
                         ref={videoRef}
                         source={{ uri: videoUri }}
                         style={styles.video}
-                        useNativeControls={false}
-                        resizeMode={ResizeMode.CONTAIN}
+                        {...NativeVideoPlayerService.getPlatformOptimizedSettings()}
                         isLooping={false}
                         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+                        posterStyle={{ resizeMode: 'contain' }}
+                        onFullscreenUpdate={async (event) => {
+                            setIsFullscreen(event.fullscreenUpdate === 1);
+                        }}
                     />
-
-                    {/* Custom Controls Overlay */}
-                    <View style={styles.controlsOverlay}>
-                        <TouchableOpacity
-                            style={styles.playPauseButton}
-                            onPress={handlePlayPause}
-                        >
-                            <Ionicons
-                                name={status.isPlaying ? "pause" : "play"}
-                                size={32}
-                                color="#fff"
-                            />
-                        </TouchableOpacity>
-                    </View>
                 </View>
 
-                {/* Progress Bar */}
-                <View style={styles.progressContainer}>
-                    <View style={styles.progressBar}>
-                        <View
-                            style={[
-                                styles.progressFill,
-                                { width: `${getProgress() * 100}%` }
-                            ]}
+                {/* 플랫폼별 안내 메시지 */}
+                <View style={styles.infoContainer}>
+                    <View style={styles.platformInfo}>
+                        <Ionicons
+                            name={NativeVideoPlayerService.getPlatformInfo().icon}
+                            size={16}
+                            color="#fff"
                         />
-                    </View>
-
-                    <View style={styles.timeContainer}>
-                        <Text style={styles.timeText}>
-                            {formatTime(status.positionMillis || 0)}
-                        </Text>
-                        <Text style={styles.timeText}>
-                            {formatTime(status.durationMillis || 0)}
+                        <Text style={styles.infoText}>
+                            {NativeVideoPlayerService.getPlatformInfo().name}
                         </Text>
                     </View>
-                </View>
-
-                {/* Control Buttons */}
-                <View style={styles.controlButtons}>
-                    <TouchableOpacity
-                        style={styles.controlButton}
-                        onPress={() => handleSeek(Math.max(0, (status.positionMillis || 0) - 10000))}
-                    >
-                        <Ionicons name="play-back" size={20} color="#fff" />
-                        <Text style={styles.controlButtonText}>10초 뒤로</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.controlButton}
-                        onPress={() => handleSeek((status.positionMillis || 0) + 10000)}
-                    >
-                        <Ionicons name="play-forward" size={20} color="#fff" />
-                        <Text style={styles.controlButtonText}>10초 앞으로</Text>
-                    </TouchableOpacity>
+                    <Text style={styles.infoSubText}>
+                        {NativeVideoPlayerService.getPlatformInfo().features.join(' • ')}
+                    </Text>
                 </View>
             </SafeAreaView>
         </Modal>
@@ -169,7 +179,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
     },
     closeButton: {
         width: 40,
@@ -187,8 +197,17 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginHorizontal: 16,
     },
-    headerSpacer: {
+    headerButtons: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    headerButton: {
         width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     videoContainer: {
         flex: 1,
@@ -199,63 +218,28 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    controlsOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    playPauseButton: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    progressContainer: {
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    },
-    progressBar: {
-        height: 4,
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
-        borderRadius: 2,
-        marginBottom: 8,
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: theme.colors.primary,
-        borderRadius: 2,
-    },
-    timeContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    timeText: {
-        fontSize: 12,
-        color: '#fff',
-        fontWeight: '500',
-    },
-    controlButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+    infoContainer: {
         paddingHorizontal: 16,
         paddingVertical: 16,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    },
-    controlButton: {
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
         alignItems: 'center',
-        gap: 4,
     },
-    controlButtonText: {
-        fontSize: 12,
+    platformInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    infoText: {
+        fontSize: 14,
         color: '#fff',
-        fontWeight: '500',
+        fontWeight: '600',
+    },
+    infoSubText: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.7)',
+        textAlign: 'center',
+        lineHeight: 16,
     },
 });
 
