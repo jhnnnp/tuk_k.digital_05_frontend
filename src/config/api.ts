@@ -38,11 +38,20 @@ export const API_BASE_URL = devHost
     ? `http://${devHost}:3000/api`
     : 'https://api.my-production-domain.com/api'; // TODO: 실제 배포 도메인으로 교체
 
+// Dev host와 앱 리턴 URL(export)
+export const DEV_HOST = devHost;
+export const APP_RETURN_URL = devHost
+    ? (devHost.includes('exp.direct')
+        ? `exp://${devHost}` // 터널 모드: 포트 없이 도메인만
+        : `exp://${devHost}:8081`) // LAN 모드
+    : 'exp://localhost:19000';
+
 // 디버깅 로그
 if (__DEV__) {
     console.log('🔧 [API CONFIG]');
     console.log(`  🌐 API_BASE_URL: ${API_BASE_URL}`);
     console.log(`  🔍 Dev Host: ${devHost}`);
+    console.log(`  🔗 APP_RETURN_URL: ${APP_RETURN_URL}`);
     console.log(`  📱 Constants:`, {
         debuggerHost: (Constants as any)?.manifest?.debuggerHost,
         hostUri: (Constants as any)?.expoConfig?.hostUri
