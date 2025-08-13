@@ -1108,7 +1108,7 @@ export default function HomeScreen({ onNavigateToEvents }: { onNavigateToEvents?
                     {/* Enhanced Video Feed */}
                     <View style={themedStyles.videoContainer}>
                         <Image
-                            source={{ uri: robot.lastSnapshot }}
+                            source={require('../assets/baby.jpeg')}
                             style={themedStyles.videoImage}
                         />
 
