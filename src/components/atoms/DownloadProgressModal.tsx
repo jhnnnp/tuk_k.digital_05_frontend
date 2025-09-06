@@ -16,7 +16,7 @@ import Animated, {
     withRepeat,
     withTiming,
 } from 'react-native-reanimated';
-import { unifiedTheme as theme } from '../../styles/theme';
+import { unifiedTheme } from '../../styles/theme';
 
 interface DownloadProgressModalProps {
     isVisible: boolean;
@@ -96,9 +96,9 @@ const DownloadProgressModal: React.FC<DownloadProgressModalProps> = ({
     };
 
     const getProgressColor = () => {
-        if (progress === 100) return theme.colors.success;
-        if (progress > 50) return theme.colors.info;
-        return theme.colors.primary;
+        if (progress === 100) return unifiedTheme.colors.success;
+        if (progress > 50) return unifiedTheme.colors.info;
+        return unifiedTheme.colors.primary;
     };
 
     return (
@@ -130,7 +130,7 @@ const DownloadProgressModal: React.FC<DownloadProgressModalProps> = ({
                         {/* 파일 정보 */}
                         <View style={styles.fileInfo}>
                             <View style={styles.fileNameContainer}>
-                                <Ionicons name="videocam" size={16} color={theme.colors.gray[500]} />
+                                <Ionicons name="videocam" size={16} color={unifiedTheme.colors.gray[500]} />
                                 <Text style={styles.fileName} numberOfLines={2}>
                                     {fileName}
                                 </Text>
@@ -223,8 +223,6 @@ const styles = StyleSheet.create({
         // 유리 효과를 위한 테두리
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.3)',
-        // 블러 효과를 위한 백드롭 필터 (iOS)
-        backdropFilter: 'blur(20px)',
     },
     header: {
         alignItems: 'center',
@@ -250,13 +248,13 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 22,
         fontWeight: '700',
-        color: theme.colors.textPrimary,
+        color: unifiedTheme.colors.text.primary,
         marginBottom: 6,
         letterSpacing: -0.5,
     },
     subtitle: {
         fontSize: 15,
-        color: theme.colors.textSecondary,
+        color: unifiedTheme.colors.text.secondary,
         textAlign: 'center',
         lineHeight: 20,
         opacity: 0.8,
@@ -285,11 +283,11 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 14,
         fontWeight: '500',
-        color: theme.colors.textPrimary,
+        color: unifiedTheme.colors.text.primary,
     },
     fileSize: {
         fontSize: 12,
-        color: theme.colors.textSecondary,
+        color: unifiedTheme.colors.text.secondary,
         marginLeft: 24,
     },
     progressContainer: {
@@ -323,12 +321,12 @@ const styles = StyleSheet.create({
     progressText: {
         fontSize: 18,
         fontWeight: '700',
-        color: theme.colors.textPrimary,
+        color: unifiedTheme.colors.text.primary,
         letterSpacing: -0.3,
     },
     progressLabel: {
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: unifiedTheme.colors.text.secondary,
         fontWeight: '500',
         opacity: 0.8,
     },
@@ -338,7 +336,7 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontSize: 13,
-        color: theme.colors.textSecondary,
+        color: unifiedTheme.colors.text.secondary,
         textAlign: 'center',
         lineHeight: 18,
         opacity: 0.7,
@@ -350,7 +348,7 @@ const styles = StyleSheet.create({
     },
     cancelText: {
         fontSize: 15,
-        color: theme.colors.error,
+        color: unifiedTheme.colors.danger,
         fontWeight: '600',
         paddingVertical: 8,
         paddingHorizontal: 16,

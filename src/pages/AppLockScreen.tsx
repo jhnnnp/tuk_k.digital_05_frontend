@@ -62,6 +62,15 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
     const [appLockModalMode, setAppLockModalMode] = useState<'auth' | 'setup' | 'setupConfirm'>('auth');
     const [setupPinFirst, setSetupPinFirst] = useState('');
 
+    // Track if settings are loaded to avoid redundant auth triggers
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+    // Track which toggle initiated a setup flow to allow rollback on cancel
+    const [pendingToggle, setPendingToggle] = useState<null | 'applock' | 'pin' | 'biometric'>(null);
+
+    // Ensure we only run initial auth once per screen load
+    const [initialAuthRan, setInitialAuthRan] = useState(false);
+
     // Animation values
     const headerTranslateY = useSharedValue(-50);
     const statusCardScale = useSharedValue(0.9);
@@ -101,6 +110,9 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
     useFocusEffect(
         React.useCallback(() => {
             console.log('🎯 [APP LOCK] 화면 포커스됨 - 설정 로드 시작');
+            setSettingsLoaded(false);
+            setInitialAuthRan(false);
+            setIsAuthenticated(false);
             loadAppLockSettings();
         }, [currentUserId])
     );
@@ -109,24 +121,26 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
      *    AUTHENTICATION CHECK FLOW
      * ──────────────────────────────── */
     useEffect(() => {
-        if (appLockEnabled !== undefined && isPinRegistered !== undefined) {
-            console.log('⚙️ [APP LOCK] 설정 로드 완료 - 인증 체크 시작');
-            console.log(`  - PIN 등록 상태: ${isPinRegistered ? '등록됨' : '미등록'}`);
-            console.log(`  - 앱 잠금 활성화: ${appLockEnabled}`);
-            console.log(`  - 생체인증 활성화: ${biometricEnabled}`);
-            console.log(`  - PIN 활성화: ${pinEnabled}`);
-            console.log(`  - 현재 인증 상태: ${isAuthenticated ? '인증됨' : '미인증'}`);
+        if (!settingsLoaded || initialAuthRan) return;
+        console.log('⚙️ [APP LOCK] 설정 로드 완료 - 인증 체크 시작');
+        console.log(`  - PIN 등록 상태: ${isPinRegistered ? '등록됨' : '미등록'}`);
+        console.log(`  - 앱 잠금 활성화: ${appLockEnabled}`);
+        console.log(`  - 생체인증 활성화: ${biometricEnabled}`);
+        console.log(`  - PIN 활성화: ${pinEnabled}`);
+        console.log(`  - 현재 인증 상태: ${isAuthenticated ? '인증됨' : '미인증'}`);
 
-            if (isPinRegistered) {
-                console.log('🔒 [APP LOCK] PIN 등록 유저 - 인증 체크 시작');
-                checkAuthentication();
-            } else {
-                console.log('✅ [APP LOCK] PIN 미등록 유저 - 인증 불필요');
-                setIsAuthenticated(true);
-                setIsAuthenticating(false);
-            }
+        if (isPinRegistered) {
+            console.log('🔒 [APP LOCK] PIN 등록 유저 - 인증 체크 시작');
+            setIsAuthenticated(false);
+            performSequentialAuthentication();
+        } else {
+            console.log('✅ [APP LOCK] PIN 미등록 유저 - 인증 불필요');
+            setIsAuthenticated(true);
+            setIsAuthenticating(false);
         }
-    }, [appLockEnabled, biometricEnabled, pinEnabled, currentPin, isPinRegistered]);
+        setInitialAuthRan(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settingsLoaded, isPinRegistered, initialAuthRan]);
 
     useEffect(() => {
         if (pinSetupCompleted) {
@@ -204,6 +218,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
         } catch (error) {
             console.error('❌ [APP LOCK] 인증 오류:', error);
             setIsAuthenticating(false);
+            setIsAuthenticated(false); // 화면 차단 유지
 
             // 인증 실패 시 사용자에게 선택권 제공
             Alert.alert(
@@ -293,30 +308,37 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
                 await AsyncStorage.removeItem('appLockResetMode');
             }
 
-            if (settings) {
-                console.log('📦 [APP LOCK] 로드된 설정:', settings);
+            const merged = {
+                appLockEnabled: false,
+                biometricEnabled: false,
+                pinEnabled: false,
+                currentPin: '',
+                pinSetupCompleted: false,
+                ...(settings || {}),
+            };
 
-                setAppLockEnabled(settings.appLockEnabled || false);
-                setBiometricEnabled(settings.biometricEnabled || false);
-                setPinEnabled(settings.pinEnabled || false);
-                setCurrentPin(settings.currentPin || '');
-                setPinSetupCompleted(settings.pinSetupCompleted || false);
+            console.log('📦 [APP LOCK] 최종 적용 설정:', merged);
 
-                const isRegistered = await userDataService.isPinRegistered();
-                setIsPinRegistered(isRegistered);
+            setAppLockEnabled(!!merged.appLockEnabled);
+            setBiometricEnabled(!!merged.biometricEnabled);
+            setPinEnabled(!!merged.pinEnabled);
+            setCurrentPin(merged.currentPin || '');
+            setPinSetupCompleted(!!merged.pinSetupCompleted);
 
-                console.log('✅ [APP LOCK] 설정 로드 완료');
-                console.log(`  🔒 앱 잠금: ${settings.appLockEnabled ? '활성화' : '비활성화'}`);
-                console.log(`  👆 생체 인증: ${settings.biometricEnabled ? '활성화' : '비활성화'}`);
-                console.log(`  🔢 PIN: ${settings.pinEnabled ? '활성화' : '비활성화'}`);
-                console.log(`  🔑 PIN 등록됨: ${isRegistered ? '등록됨' : '등록안됨'}`);
-            } else {
-                console.log('📝 [APP LOCK] 저장된 설정 없음');
-                setIsPinRegistered(false);
-            }
+            // 등록 여부는 설정 기반으로 단일 결정
+            const registered = !!(merged.pinEnabled && merged.currentPin);
+            setIsPinRegistered(registered);
+
+            console.log('✅ [APP LOCK] 설정 로드 완료');
+            console.log(`  🔒 앱 잠금: ${merged.appLockEnabled ? '활성화' : '비활성화'}`);
+            console.log(`  👆 생체 인증: ${merged.biometricEnabled ? '활성화' : '비활성화'}`);
+            console.log(`  🔢 PIN: ${merged.pinEnabled ? '활성화' : '비활성화'}`);
+            console.log(`  🔑 PIN 등록됨: ${registered ? '등록됨' : '등록안됨'}`);
+            setSettingsLoaded(true);
         } catch (error) {
             console.error('❌ [APP LOCK] 설정 로드 실패:', error);
             setIsPinRegistered(false);
+            setSettingsLoaded(true);
         }
     };
 
@@ -353,6 +375,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
         setShowAppLockModal(false);
         setIsAuthenticated(true);
         setIsAuthenticating(false);
+        setPendingToggle(null);
     };
 
     const handlePinSetupComplete = async (pin: string) => {
@@ -373,6 +396,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
             setShowAppLockModal(false);
             setSetupPinFirst('');
             setAppLockModalMode('auth');
+            setPendingToggle(null);
 
             const updatedSettings = {
                 appLockEnabled: true,
@@ -401,8 +425,26 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
             // PIN 확인 중 취소 시 setup 모드로 돌아가기
             setAppLockModalMode('setup');
             setSetupPinFirst('');
-        } else if (appLockModalMode === 'auth') {
-            // 인증 모드에서 취소 시 뒤로 가기
+            return;
+        }
+
+        // 세팅 과정에서의 취소라면 상태 원복
+        if (pendingToggle === 'applock') {
+            setAppLockEnabled(false);
+        }
+        if (pendingToggle === 'pin') {
+            setPinEnabled(false);
+            setCurrentPin('');
+            setPinSetupCompleted(false);
+            setIsPinRegistered(false);
+        }
+        if (pendingToggle === 'biometric') {
+            setBiometricEnabled(false);
+        }
+        setPendingToggle(null);
+
+        // 인증 모드에서 취소 시 뒤로가기
+        if (appLockModalMode === 'auth') {
             navigation.goBack();
         }
     };
@@ -411,19 +453,27 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
      *        TOGGLE HANDLERS
      * ──────────────────────────────── */
     const handleAppLockToggle = async (value: boolean) => {
-        setAppLockEnabled(value);
         await Haptics.selectionAsync();
-
         if (value) {
+            setPendingToggle('applock');
+            setAppLockEnabled(true);
             setAppLockModalMode('setup');
             setShowAppLockModal(true);
         } else {
+            setAppLockEnabled(false);
             setBiometricEnabled(false);
             setPinEnabled(false);
             setCurrentPin('');
             setPinSetupCompleted(false);
             setIsPinRegistered(false);
-            saveAppLockSettings();
+            await saveAppLockSettings({
+                appLockEnabled: false,
+                biometricEnabled: false,
+                pinEnabled: false,
+                currentPin: '',
+                pinSetupCompleted: false,
+                isPinRegistered: false,
+            });
             showSuccessModal(
                 '앱 잠금 비활성화',
                 '앱 잠금이 비활성화되었습니다.',
@@ -451,6 +501,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
                 );
                 return;
             }
+            setPendingToggle('biometric');
             await setupBiometricAuth();
         } else {
             setBiometricEnabled(false);
@@ -531,6 +582,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
 
     const handlePinToggle = (value: boolean) => {
         if (value) {
+            setPendingToggle('pin');
             setAppLockModalMode('setup');
             setShowAppLockModal(true);
         } else {
@@ -796,87 +848,74 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
     /* ────────────────────────────────
      *          MAIN RENDER
      * ──────────────────────────────── */
+    // Early return: loading/auth overlays act as gate before showing content
+    if (isAuthenticating) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+                <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+                <LinearGradient
+                    colors={[theme.primary + '20', theme.primary + '10']}
+                    style={{ width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}
+                >
+                    <Ionicons name="shield" size={40} color={theme.primary} />
+                </LinearGradient>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: theme.textPrimary, marginBottom: 8 }}>인증 중...</Text>
+                <Text style={{ fontSize: 14, color: theme.textSecondary, textAlign: 'center', marginBottom: 30 }}>
+                    {biometricEnabled && isBiometricAvailable
+                        ? '생체 인증을 시도하고 있습니다...\n실패하면 PIN 입력으로 진행됩니다'
+                        : 'PIN 입력을 준비하고 있습니다...'}
+                </Text>
+                <TouchableOpacity
+                    style={{ backgroundColor: theme.error, borderRadius: 12, padding: 16, marginHorizontal: 40, alignItems: 'center' }}
+                    onPress={resetAppLockSettings}
+                >
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>🔄 개발용: 앱락 설정 초기화</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={{ backgroundColor: theme.primary, borderRadius: 12, padding: 16, marginHorizontal: 40, marginTop: 12, alignItems: 'center' }}
+                    onPress={testBiometricAuth}
+                >
+                    <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>🧪 개발용: 생체인증 테스트</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+                <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+                <Ionicons name="lock-closed" size={40} color={theme.textSecondary} />
+                <Text style={{ marginTop: 12, color: theme.textSecondary }}>인증이 필요합니다.</Text>
+                <TouchableOpacity
+                    onPress={checkAuthentication}
+                    style={{ marginTop: 16, padding: 12, borderRadius: 10, backgroundColor: theme.primary }}
+                >
+                    <Text style={{ color: '#fff', fontWeight: '600' }}>다시 인증하기</Text>
+                </TouchableOpacity>
+
+                {/* Allow PIN modal to appear while content is gated */}
+                <AppLockModal
+                    visible={showAppLockModal}
+                    mode={appLockModalMode}
+                    expectedPin={currentPin}
+                    setupPin={setupPinFirst}
+                    onUnlock={handleAppLockModalUnlock}
+                    onSetupComplete={handlePinSetupComplete}
+                    onCancel={handleAppLockModalCancel}
+                    pinEnabled={pinEnabled}
+                    biometricEnabled={biometricEnabled}
+                    isBiometricAvailable={isBiometricAvailable}
+                />
+            </View>
+        );
+    }
+
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
-
-            {/* ✨ 핵심 수정: 로딩 화면에서 생체인증 진행 */}
-            {isAuthenticating && (
-                <View style={{
-                    flex: 1,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    backgroundColor: theme.background,
-                }}>
-                    <LinearGradient
-                        colors={[theme.primary + '20', theme.primary + '10']}
-                        style={{
-                            width: 80,
-                            height: 80,
-                            borderRadius: 40,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            marginBottom: 20,
-                        }}
-                    >
-                        <Ionicons name="shield" size={40} color={theme.primary} />
-                    </LinearGradient>
-                    <Text style={{
-                        fontSize: 18,
-                        fontWeight: '600',
-                        color: theme.textPrimary,
-                        marginBottom: 8,
-                    }}>
-                        인증 중...
-                    </Text>
-                    <Text style={{
-                        fontSize: 14,
-                        color: theme.textSecondary,
-                        textAlign: 'center',
-                        marginBottom: 30,
-                    }}>
-                        {biometricEnabled && isBiometricAvailable
-                            ? '생체 인증을 시도하고 있습니다...\n실패하면 PIN 입력으로 진행됩니다'
-                            : 'PIN 입력을 준비하고 있습니다...'
-                        }
-                    </Text>
-
-                    <TouchableOpacity
-                        style={{
-                            backgroundColor: theme.error,
-                            borderRadius: 12,
-                            padding: 16,
-                            marginHorizontal: 40,
-                            alignItems: 'center',
-                        }}
-                        onPress={resetAppLockSettings}
-                    >
-                        <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                            🔄 개발용: 앱락 설정 초기화
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* 생체인증 테스트 버튼 */}
-                    <TouchableOpacity
-                        style={{
-                            backgroundColor: theme.primary,
-                            borderRadius: 12,
-                            padding: 16,
-                            marginHorizontal: 40,
-                            marginTop: 12,
-                            alignItems: 'center',
-                        }}
-                        onPress={testBiometricAuth}
-                    >
-                        <Text style={{ color: 'white', fontSize: 16, fontWeight: '600' }}>
-                            🧪 개발용: 생체인증 테스트
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            )}
-
             {/* 인증이 완료된 경우에만 실제 화면 표시 */}
-            {!isAuthenticating && (
+            {
                 <>
                     {/* Header */}
                     <SafeAreaView>
@@ -1025,8 +1064,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
                                 title="PIN 잠금"
                                 description={pinEnabled && currentPin
                                     ? "4자리 숫자 PIN으로 잠금 해제 (선택사항)"
-                                    : "PIN이 설정되지 않았습니다. PIN을 설정해주세요."
-                                }
+                                    : "PIN이 설정되지 않았습니다. PIN을 설정해주세요."}
                                 value={pinEnabled}
                                 onValueChange={handlePinToggle}
                                 disabled={!appLockEnabled}
@@ -1137,7 +1175,7 @@ export default function AppLockScreen({ navigation }: { navigation: any }) {
                         isBiometricAvailable={isBiometricAvailable} // 실제 생체인증 사용 가능 상태
                     />
                 </>
-            )}
+            }
         </View>
     );
 }

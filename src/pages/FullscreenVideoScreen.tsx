@@ -344,7 +344,7 @@ export default function FullscreenVideoScreen({ navigation, route }: { navigatio
                 activeOpacity={1}
             >
                 <Animated.Image
-                    source={{ uri: mockCamera.thumbnail }}
+                    source={require('../assets/baby.jpeg')}
                     style={[styles.videoImage, videoZoomStyle]}
                     resizeMode="cover"
                 />
