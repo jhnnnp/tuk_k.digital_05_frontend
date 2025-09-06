@@ -141,6 +141,12 @@ class MqttService {
                 this.notifyConnectionListeners(false);
             });
 
+            this.client.stream?.on?.('timeout', () => {
+                console.error('⏳ MQTT 연결 타임아웃');
+                this.isConnected = false;
+                this.notifyConnectionListeners(false);
+            });
+
             this.client.on('reconnect', () => {
                 console.log('🔄 MQTT 재연결 시도...');
                 this.reconnectAttempts++;
