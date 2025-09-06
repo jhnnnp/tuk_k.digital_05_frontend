@@ -284,9 +284,65 @@ class CameraService {
         }
     }
 
+    // === Relay controls (RTSP -> RTMP -> HLS) ===
+    async startRelay(id: string, options?: {
+        videoCodec?: 'copy' | 'h264';
+        audioCodec?: 'aac' | 'copy' | 'none';
+        gop?: number;
+        audioBitrateK?: number;
+        audioSampleRate?: number;
+    }): Promise<{ ok: boolean; hls?: string; message?: string }> {
+        const response = await fetch(`${this.baseUrl}/api/cameras/${id}/relay/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${await this.getAuthToken()}`
+            },
+            body: JSON.stringify(options || {})
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Failed to start relay: ${response.status} ${text}`);
+        }
+        return response.json();
+    }
+
+    async stopRelay(id: string): Promise<void> {
+        const response = await fetch(`${this.baseUrl}/api/cameras/${id}/relay/stop`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${await this.getAuthToken()}`
+            }
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Failed to stop relay: ${response.status} ${text}`);
+        }
+    }
+
+    async getRelayStatus(id: string): Promise<{ running: boolean }> {
+        const response = await fetch(`${this.baseUrl}/api/cameras/${id}/relay/status`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${await this.getAuthToken()}`
+            }
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Failed to get relay status: ${response.status} ${text}`);
+        }
+        return response.json();
+    }
+
     // Private method to get auth token
     private async getAuthToken(): Promise<string> {
-        // In a real app, this would get the token from secure storage
+        // DEMO: use static demo token to pass backend middleware
+        if (process.env.EXPO_PUBLIC_DEMO_MODE === 'true') {
+            return 'demo';
+        }
+        // TODO: integrate real token from secure storage when available
         return 'mock-token';
     }
 }
