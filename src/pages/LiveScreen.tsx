@@ -47,6 +47,7 @@ import Toast from 'react-native-toast-message';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeedbackCircleButton from '../components/atoms/FeedbackCircleButton';
 import CaptureNotification from '../components/atoms/CaptureNotification';
+import VideoPlayer from '../components/atoms/VideoPlayer';
 
 // Performance optimized animated components
 // const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -141,6 +142,7 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
     const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
     const [streamState, setStreamState] = useState<LiveStreamState>(liveStreamService.getState());
     const [showCaptureToast, setShowCaptureToast] = useState(false);
+    const [playerVisible, setPlayerVisible] = useState(false);
 
     // MQTT 연결 상태
     const [mqttConnected, setMqttConnected] = useState(false);
@@ -203,9 +205,18 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
     useEffect(() => {
         const connectMqtt = async () => {
             try {
-                // MQTT 브로커 연결 (실제 환경에서는 환경변수로 설정)
-                const brokerUrl = 'mqtt://192.168.0.8:1883'; // 라즈베리파이 IP
-                const connected = await mqttService.connect(brokerUrl, camera.id);
+                // MQTT 브로커 연결 (WebSocket 사용 / Dev 호스트 기반)
+                const { DEV_HOST } = await import('../config/api');
+                const host = DEV_HOST || '192.168.0.9';
+                const brokerUrl = `ws://${host}:8083/mqtt`;
+                const connected = await mqttService.connect(brokerUrl, camera.id, {
+                    username: process.env.EXPO_PUBLIC_MQTT_USERNAME || 'tibo',
+                    password: process.env.EXPO_PUBLIC_MQTT_PASSWORD || 'tibo123',
+                    protocolVersion: 4, // MQTT 3.1.1
+                    keepalive: 60,
+                    connectTimeout: 10000,
+                    clean: true
+                });
 
                 if (connected) {
                     console.log('✅ MQTT 연결 성공');
@@ -269,6 +280,24 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
         // 컴포넌트 언마운트 시 MQTT 연결 해제
         return () => {
             mqttService.disconnect();
+        };
+    }, [camera.id]);
+
+    // 스트림 시작/정지 라이프사이클: 화면 진입 시 시작, 이탈 시 중지
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                await liveStreamService.startStream(camera.id);
+                if (mounted) setPlayerVisible(true);
+            } catch (e) {
+                console.error('라이브 시작 실패:', e);
+            }
+        })();
+        return () => {
+            mounted = false;
+            liveStreamService.stopStream().catch(() => { });
+            setPlayerVisible(false);
         };
     }, [camera.id]);
 
@@ -718,6 +747,15 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
                 onHide={() => setShowCaptureToast(false)}
                 type="capture"
             />
+            {/* HLS 플레이어 모달 */}
+            {streamState?.streamUrl && (
+                <VideoPlayer
+                    videoUri={streamState.streamUrl}
+                    title={`Camera ${camera.id}`}
+                    isVisible={playerVisible}
+                    onClose={() => setPlayerVisible(false)}
+                />
+            )}
             {/* ToastMessage 컴포넌트는 앱 루트(App.tsx 등)에 <Toast />로 한 번만 추가 필요 */}
             <Toast />
         </GestureHandlerRootView>
