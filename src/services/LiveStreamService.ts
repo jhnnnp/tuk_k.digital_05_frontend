@@ -58,63 +58,81 @@ class LiveStreamService {
         });
     }
 
-    // 라이브 스트림 시작
+    // 라이브 스트림 시작 (릴레이 시작 + 스트림 URL 가져오기)
     async startStream(cameraId: string): Promise<void> {
         try {
-            this.updateState({
-                cameraId,
-                isActive: true,
-                error: null
-            });
+            this.updateState({ cameraId, isActive: true, error: null });
 
-            // 실제 스트림 URL 가져오기
-            const stream = await cameraService.getLiveStream(cameraId);
-            this.updateState({
-                streamUrl: stream.url,
-                quality: stream.resolution === '1080p' ? 'high' :
-                    stream.resolution === '720p' ? 'medium' : 'low'
-            });
+            // 1) 릴레이 시작 요청 (RTSP->RTMP->HLS), 최대 3회 재시도
+            let relay;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    relay = await cameraService.startRelay(cameraId);
+                    break;
+                } catch (e) {
+                    if (i === 2) throw e;
+                    await new Promise(r => setTimeout(r, 1500));
+                }
+            }
+
+            // 2) 스트림 URL 확보: 우선 릴레이 응답의 hls 사용, 없으면 기존 API로 조회
+            let streamUrl = relay?.hls || null;
+            if (!streamUrl) {
+                const stream = await cameraService.getLiveStream(cameraId);
+                streamUrl = stream.url;
+            }
+
+            // 3) m3u8 가용성 폴링 (HEAD), 최대 10초
+            const deadline = Date.now() + 10000;
+            const urlToCheck = streamUrl as string;
+            while (Date.now() < deadline) {
+                try {
+                    const res = await fetch(urlToCheck, { method: 'HEAD' });
+                    if (res.ok) break;
+                } catch (_) { }
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            this.updateState({ streamUrl, quality: 'high' });
         } catch (error) {
-            this.updateState({
-                isActive: false,
-                error: error instanceof Error ? error.message : '스트림 시작 실패'
-            });
+            this.updateState({ isActive: false, error: error instanceof Error ? error.message : '스트림 시작 실패' });
             throw error;
         }
     }
 
-    // 라이브 스트림 중지
-    stopStream(): void {
-        this.updateState({
-            cameraId: null,
-            isActive: false,
-            isRecording: false,
-            isMicOn: false,
-            moveMode: false,
-            streamUrl: null,
-            error: null
-        });
+    // 라이브 스트림 중지 (릴레이 중지)
+    async stopStream(): Promise<void> {
+        try {
+            const id = this.state.cameraId;
+            if (id) {
+                try { await cameraService.stopRelay(id); } catch (_) { }
+            }
+        } finally {
+            this.updateState({
+                cameraId: null,
+                isActive: false,
+                isRecording: false,
+                isMicOn: false,
+                moveMode: false,
+                streamUrl: null,
+                error: null
+            });
+        }
     }
 
     // 녹화 토글
     toggleRecording(): void {
-        this.updateState({
-            isRecording: !this.state.isRecording
-        });
+        this.updateState({ isRecording: !this.state.isRecording });
     }
 
     // 마이크 토글
     toggleMic(): void {
-        this.updateState({
-            isMicOn: !this.state.isMicOn
-        });
+        this.updateState({ isMicOn: !this.state.isMicOn });
     }
 
     // 이동모드 토글
     toggleMoveMode(): void {
-        this.updateState({
-            moveMode: !this.state.moveMode
-        });
+        this.updateState({ moveMode: !this.state.moveMode });
     }
 
     // 화질 변경
@@ -130,7 +148,6 @@ class LiveStreamService {
     // 현재 카메라 정보 가져오기
     async getCurrentCamera(): Promise<RoboCam | null> {
         if (!this.state.cameraId) return null;
-
         try {
             return await cameraService.getCamera(this.state.cameraId);
         } catch (error) {
