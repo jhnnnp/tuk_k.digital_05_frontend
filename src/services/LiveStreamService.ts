@@ -1,5 +1,7 @@
 import { RoboCam, LiveStream } from '../types';
 import { cameraService } from './CameraService';
+import { httpClient } from '../utils/http';
+import { BACKEND_BASE_URL } from '../config/api';
 
 export interface LiveStreamState {
     cameraId: string | null;
@@ -63,6 +65,25 @@ class LiveStreamService {
         try {
             this.updateState({ cameraId, isActive: true, error: null });
 
+            // 0) 사전 네트워크/백엔드 진단 (최대 5초)
+            try {
+                // 네트워크 연결 상태(선택적): 라이브러리 미존재 환경에서도 동작하도록 가드
+                let NetInfo: any;
+                try { NetInfo = require('react-native-netinfo').default; } catch (_) { }
+                if (NetInfo?.fetch) {
+                    const state = await NetInfo.fetch();
+                    if (!state?.isConnected) {
+                        throw new Error('네트워크에 연결되어 있지 않습니다.');
+                    }
+                }
+
+                // 백엔드 헬스 체크로 CORS/도메인/포트 문제 조기 감지
+                await httpClient.get(`/healthz`, { baseURL: BACKEND_BASE_URL, timeout: 5000 } as any);
+            } catch (diagError: any) {
+                const message = diagError?.message || '백엔드 연결 실패';
+                throw new Error(`백엔드 연결 진단 실패: ${message} (${BACKEND_BASE_URL}/healthz)`);
+            }
+
             // 1) 릴레이 시작 요청 (RTSP->RTMP->HLS), 최대 3회 재시도
             let relay;
             for (let i = 0; i < 3; i++) {
@@ -82,12 +103,15 @@ class LiveStreamService {
                 streamUrl = stream.url;
             }
 
-            // 3) m3u8 가용성 폴링 (HEAD), 최대 10초
-            const deadline = Date.now() + 10000;
+            // 3) m3u8 가용성 폴링 (HEAD), 최대 30초
+            const deadline = Date.now() + 30000;
             const urlToCheck = streamUrl as string;
             while (Date.now() < deadline) {
                 try {
-                    const res = await fetch(urlToCheck, { method: 'HEAD' });
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    const res = await fetch(urlToCheck, { method: 'HEAD', signal: controller.signal });
+                    clearTimeout(timeoutId);
                     if (res.ok) break;
                 } catch (_) { }
                 await new Promise(r => setTimeout(r, 800));
@@ -95,7 +119,8 @@ class LiveStreamService {
 
             this.updateState({ streamUrl, quality: 'high' });
         } catch (error) {
-            this.updateState({ isActive: false, error: error instanceof Error ? error.message : '스트림 시작 실패' });
+            const message = error instanceof Error ? error.message : '스트림 시작 실패';
+            this.updateState({ isActive: false, error: message });
             throw error;
         }
     }

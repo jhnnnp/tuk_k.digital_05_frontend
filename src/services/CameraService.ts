@@ -1,12 +1,15 @@
 import { RoboCam, RoboCamSettings, RoboCamStats, PTZCommand, LiveStream } from '../types';
 import cameraData from '../mocks/cameras.json';
+import { httpClient } from '../utils/http';
+import { API_BASE_URL } from '../config/api';
 
 class CameraService {
     private baseUrl: string;
     private isMockMode: boolean;
 
     constructor() {
-        this.baseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4001';
+        // API_BASE_URL은 '/api'까지 포함하므로 제거하여 백엔드 루트로 설정
+        this.baseUrl = (API_BASE_URL || '').replace(/\/api$/, '') || 'http://192.168.123.105:3001';
         this.isMockMode = false; // 실제 백엔드와 연동하므로 mock 모드 비활성화
     }
 
@@ -16,25 +19,22 @@ class CameraService {
             if (this.isMockMode) {
                 // Simulate network delay
                 await new Promise(resolve => setTimeout(resolve, 500));
-                return cameraData.cameras.map(camera => ({
+                return cameraData.cameras.map((camera: any) => ({
                     ...camera,
+                    // 모델/상태가 문자열일 수 있으므로 합리적인 기본값으로 정규화
+                    model: (/mini/i.test(camera.model) ? 'TIBO-MINI' : /pan/i.test(camera.model) ? 'TIBO-PAN' : 'TIBO-PRO'),
+                    status: (['online', 'offline', 'maintenance', 'error'].includes(camera.status) ? camera.status : 'offline'),
                     lastSeen: new Date(camera.lastSeen)
-                }));
+                })) as unknown as RoboCam[];
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras`, {
-                method: 'GET',
+            const data = await httpClient.get<{ cameras: RoboCam[] }>(`/cameras`, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            } as any);
             return data.cameras;
         } catch (error) {
             console.error('Error fetching cameras:', error);
@@ -47,29 +47,25 @@ class CameraService {
         try {
             if (this.isMockMode) {
                 await new Promise(resolve => setTimeout(resolve, 300));
-                const camera = cameraData.cameras.find(c => c.id === id);
+                const camera: any = cameraData.cameras.find((c: any) => c.id === id);
                 if (!camera) {
                     throw new Error('Camera not found');
                 }
-                return {
+                return ({
                     ...camera,
+                    model: (/mini/i.test(camera.model) ? 'TIBO-MINI' : /pan/i.test(camera.model) ? 'TIBO-PAN' : 'TIBO-PRO'),
+                    status: (['online', 'offline', 'maintenance', 'error'].includes(camera.status) ? camera.status : 'offline'),
                     lastSeen: new Date(camera.lastSeen)
-                };
+                }) as unknown as RoboCam;
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}`, {
-                method: 'GET',
+            const data = await httpClient.get<{ camera: RoboCam }>(`/cameras/${id}`, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            } as any);
             return data.camera;
         } catch (error) {
             console.error(`Error fetching camera ${id}:`, error);
@@ -87,18 +83,13 @@ class CameraService {
                 return;
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/settings`, {
-                method: 'PATCH',
+            await httpClient.patch(`/cameras/${id}/settings`, settings, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
-                },
-                body: JSON.stringify(settings)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+                }
+            } as any);
         } catch (error) {
             console.error(`Error updating camera settings for ${id}:`, error);
             throw new Error('Failed to update camera settings');
@@ -117,19 +108,13 @@ class CameraService {
                 return camera.stats;
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/stats`, {
-                method: 'GET',
+            const data = await httpClient.get<{ stats: RoboCamStats }>(`/cameras/${id}/stats`, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            } as any);
             return data.stats;
         } catch (error) {
             console.error(`Error fetching camera stats for ${id}:`, error);
@@ -146,18 +131,13 @@ class CameraService {
                 return;
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/ptz`, {
-                method: 'POST',
+            await httpClient.post(`/cameras/${id}/ptz`, command, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
-                },
-                body: JSON.stringify(command)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+                }
+            } as any);
         } catch (error) {
             console.error(`Error sending PTZ command to camera ${id}:`, error);
             throw new Error('Failed to send PTZ command');
@@ -182,19 +162,13 @@ class CameraService {
                 };
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/stream`, {
-                method: 'GET',
+            const data = await httpClient.get<{ stream: LiveStream }>(`/cameras/${id}/stream`, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            } as any);
             return data.stream;
         } catch (error) {
             console.error(`Error fetching live stream for camera ${id}:`, error);
@@ -207,23 +181,18 @@ class CameraService {
         try {
             if (this.isMockMode) {
                 await new Promise(resolve => setTimeout(resolve, 100));
-                const camera = cameraData.cameras.find(c => c.id === id);
-                return camera?.status || 'offline';
+                const camera: any = cameraData.cameras.find((c: any) => c.id === id);
+                const s: any = camera?.status;
+                return (s === 'online' || s === 'offline' || s === 'maintenance' || s === 'error') ? s : 'offline';
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/status`, {
-                method: 'GET',
+            const data = await httpClient.get<{ status: 'online' | 'offline' | 'maintenance' | 'error' }>(`/cameras/${id}/status`, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
+            } as any);
             return data.status;
         } catch (error) {
             console.error(`Error fetching camera status for ${id}:`, error);
@@ -240,17 +209,13 @@ class CameraService {
                 return;
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/restart`, {
-                method: 'POST',
+            await httpClient.post(`/cameras/${id}/restart`, undefined, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
                 }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            } as any);
         } catch (error) {
             console.error(`Error restarting camera ${id}:`, error);
             throw new Error('Failed to restart camera');
@@ -266,18 +231,13 @@ class CameraService {
                 return;
             }
 
-            const response = await fetch(`${this.baseUrl}/api/cameras/${id}/firmware`, {
-                method: 'POST',
+            await httpClient.post(`/cameras/${id}/firmware`, { version }, {
+                baseURL: `${this.baseUrl}/api`,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${await this.getAuthToken()}`
-                },
-                body: JSON.stringify({ version })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+                }
+            } as any);
         } catch (error) {
             console.error(`Error updating firmware for camera ${id}:`, error);
             throw new Error('Failed to update firmware');
@@ -292,48 +252,33 @@ class CameraService {
         audioBitrateK?: number;
         audioSampleRate?: number;
     }): Promise<{ ok: boolean; hls?: string; message?: string }> {
-        const response = await fetch(`${this.baseUrl}/api/cameras/${id}/relay/start`, {
-            method: 'POST',
+        return httpClient.post<{ ok: boolean; hls?: string; message?: string }>(`/cameras/${id}/relay/start`, options || {}, {
+            baseURL: `${this.baseUrl}/api`,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${await this.getAuthToken()}`
-            },
-            body: JSON.stringify(options || {})
-        });
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Failed to start relay: ${response.status} ${text}`);
-        }
-        return response.json();
+            }
+        } as any);
     }
 
     async stopRelay(id: string): Promise<void> {
-        const response = await fetch(`${this.baseUrl}/api/cameras/${id}/relay/stop`, {
-            method: 'POST',
+        await httpClient.post(`/cameras/${id}/relay/stop`, undefined, {
+            baseURL: `${this.baseUrl}/api`,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${await this.getAuthToken()}`
             }
-        });
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Failed to stop relay: ${response.status} ${text}`);
-        }
+        } as any);
     }
 
     async getRelayStatus(id: string): Promise<{ running: boolean }> {
-        const response = await fetch(`${this.baseUrl}/api/cameras/${id}/relay/status`, {
-            method: 'GET',
+        return httpClient.get<{ running: boolean }>(`/cameras/${id}/relay/status`, {
+            baseURL: `${this.baseUrl}/api`,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${await this.getAuthToken()}`
             }
-        });
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Failed to get relay status: ${response.status} ${text}`);
-        }
-        return response.json();
+        } as any);
     }
 
     // Private method to get auth token
