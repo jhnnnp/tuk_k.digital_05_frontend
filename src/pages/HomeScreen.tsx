@@ -75,103 +75,103 @@ interface Event {
 const mockEvents: Event[] = [
     {
         id: '1',
-        type: 'motion',
-        title: '모션 감지됨',
-        description: '거실에서 움직임이 감지되었습니다',
-        timestamp: '2분 전',
-        icon: 'eye-outline',
-        iconColor: '#FF9800',
-        statusColor: '#FF9800'
-    },
-    {
-        id: '2',
-        type: 'recording',
-        title: '녹화 시작',
-        description: '자동 녹화가 시작되었습니다',
-        timestamp: '5분 전',
-        icon: 'videocam-outline',
-        iconColor: '#F44336',
-        statusColor: '#F44336'
-    },
-    {
-        id: '3',
-        type: 'patrol',
-        title: '순찰 완료',
-        description: '정기 순찰이 완료되었습니다',
-        timestamp: '12분 전',
-        icon: 'checkmark-circle-outline',
+        type: 'system',
+        title: '전원 켜짐',
+        description: 'TIBO 시스템이 시작되었습니다.',
+        timestamp: '방금 전',
+        icon: 'power-outline',
         iconColor: '#4CAF50',
         statusColor: '#4CAF50'
     },
     {
-        id: '4',
-        type: 'security',
-        title: '보안 모드 활성화',
-        description: '외출 모드로 전환되었습니다',
-        timestamp: '15분 전',
-        icon: 'shield-outline',
+        id: '2',
+        type: 'patrol',
+        title: '순찰 시작',
+        description: '거실 순찰을 시작합니다.',
+        timestamp: '1분 전',
+        icon: 'play-circle-outline',
         iconColor: '#2196F3',
+        statusColor: '#2196F3'
+    },
+    {
+        id: '3',
+        type: 'motion',
+        title: '사용자 추적 중',
+        description: '사용자를 따라 이동합니다.',
+        timestamp: '3분 전',
+        icon: 'person-outline',
+        iconColor: '#FF9800',
         statusColor: '#FF9800'
     },
     {
-        id: '5',
+        id: '4',
         type: 'system',
-        title: '시스템 업데이트',
-        description: '펌웨어가 성공적으로 업데이트되었습니다',
-        timestamp: '18분 전',
-        icon: 'refresh-outline',
+        title: '충전 스테이션 복귀',
+        description: '배터리 충전을 위해 복귀합니다.',
+        timestamp: '5분 전',
+        icon: 'battery-charging-outline',
+        iconColor: '#4CAF50',
+        statusColor: '#4CAF50'
+    },
+    {
+        id: '5',
+        type: 'security',
+        title: '보안 모드 활성화',
+        description: '외출 모드가 활성화되었습니다.',
+        timestamp: '10분 전',
+        icon: 'shield-checkmark-outline',
+        iconColor: '#F44336',
+        statusColor: '#F44336'
+    },
+    {
+        id: '6',
+        type: 'system',
+        title: '소리 감지',
+        description: '아기 울음소리가 감지되었습니다.',
+        timestamp: '12분 전',
+        icon: 'volume-high-outline',
         iconColor: '#9C27B0',
         statusColor: '#9C27B0'
     },
     {
-        id: '6',
-        type: 'motion',
-        title: '모션 감지됨',
-        description: '주방에서 움직임이 감지되었습니다',
-        timestamp: '25분 전',
-        icon: 'eye-outline',
-        iconColor: '#FF9800',
-        statusColor: '#FF9800'
-    },
-    {
         id: '7',
-        type: 'recording',
-        title: '녹화 중지',
-        description: '자동 녹화가 중지되었습니다',
-        timestamp: '32분 전',
-        icon: 'stop-circle-outline',
-        iconColor: '#F44336',
-        statusColor: '#F44336'
+        type: 'motion',
+        title: '객체 감지: 컵',
+        description: '테이블 위에서 컵이 감지되었습니다.',
+        timestamp: '14분 전',
+        icon: 'cube-outline',
+        iconColor: '#FFC107',
+        statusColor: '#FFC107'
     },
     {
         id: '8',
-        type: 'patrol',
-        title: '순찰 시작',
-        description: '자동 순찰이 시작되었습니다',
-        timestamp: '45분 전',
-        icon: 'play-circle-outline',
-        iconColor: '#4CAF50',
-        statusColor: '#4CAF50'
+        type: 'system',
+        title: '연결 끊김',
+        description: 'Wi-Fi 연결이 끊어졌습니다.',
+        timestamp: '18분 전',
+        icon: 'wifi-off-outline',
+        iconColor: '#9E9E9E',
+        statusColor: '#9E9E9E'
     },
     {
         id: '9',
-        type: 'security',
-        title: '보안 모드 비활성화',
-        description: '재실 모드로 전환되었습니다',
-        timestamp: '1시간 전',
-        icon: 'shield-checkmark-outline',
-        iconColor: '#2196F3',
-        statusColor: '#4CAF50'
+        type: 'patrol',
+        title: '순찰 완료',
+        description: '예약된 순찰이 완료되었습니다.',
+        timestamp: '25분 전',
+        icon: 'checkmark-circle-outline',
+        iconColor: '#009688',
+        statusColor: '#009688'
     },
     {
         id: '10',
         type: 'system',
-        title: '배터리 충전 완료',
-        description: '배터리 충전이 완료되었습니다',
-        timestamp: '1시간 15분 전',
-        icon: 'battery-charging-outline',
-        iconColor: '#4CAF50',
-        statusColor: '#4CAF50'
+        title: '대기 모드',
+        description: '명령을 기다리고 있습니다.',
+        timestamp: '30분 전',
+        icon: 'pause-circle-outline',
+        iconColor: '#607D8B',
+        statusColor: '#607D8B'
     }
 ];
 
@@ -812,17 +812,23 @@ export default function HomeScreen({ onNavigateToEvents }: { onNavigateToEvents?
 
     // 개발자 모드 이벤트 관리 핸들러
     const handleAddMockEvent = useCallback(() => {
-        const newEvent: Event = {
-            id: `mock-${Date.now()}`,
-            type: 'system',
-            title: '새 이벤트 추가됨',
-            description: `개발자 모드로 추가된 이벤트 (${new Date().toLocaleTimeString()})`,
-            timestamp: '방금 전',
-            icon: 'add-circle-outline',
-            iconColor: '#9C27B0',
-            statusColor: '#9C27B0'
-        };
-        setEvents(prev => [newEvent, ...prev]);
+        // 즉시 사용자에게 피드백 제공
+        Alert.alert('이벤트 예약됨', '10초 후에 "객체 감지: 컵" 이벤트가 추가됩니다.');
+
+        // 10초 후에 이벤트 추가
+        setTimeout(() => {
+            const newEvent: Event = {
+                id: `mock-${Date.now()}`,
+                type: 'motion',
+                title: '객체 감지: 컵',
+                description: `테이블 위에서 컵이 감지되었습니다. (${new Date().toLocaleTimeString()})`,
+                timestamp: '방금 전',
+                icon: 'cube-outline',
+                iconColor: '#FFC107',
+                statusColor: '#FFC107'
+            };
+            setEvents(prev => [newEvent, ...prev]);
+        }, 10000); // 10초 = 10000ms
     }, []);
 
     const handleRemoveMockEvent = useCallback(() => {

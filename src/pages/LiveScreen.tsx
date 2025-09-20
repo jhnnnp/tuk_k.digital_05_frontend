@@ -15,6 +15,7 @@ import {
     StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import WebRTCPlayer from '../components/atoms/WebRTCPlayer';
 import Animated, {
     FadeInUp,
     FadeInDown,
@@ -292,6 +293,8 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
                 if (mounted) setPlayerVisible(true);
             } catch (e) {
                 console.error('라이브 시작 실패:', e);
+                const msg = (e as any)?.message || 'Network request failed';
+                Alert.alert('라이브 시작 실패', msg);
             }
         })();
         return () => {
@@ -603,9 +606,10 @@ export default function LiveScreen({ navigation, onBack, moveMode, setMoveMode, 
                                 console.log('[전체화면] 비디오 컨테이너 렌더링');
                                 return null;
                             })()}
-                            <Animated.Image
-                                source={require('../assets/baby.jpeg')}
+                            <WebRTCPlayer
+                                streamUrl={streamState?.streamUrl || "http://192.168.123.105:3001/live/1/index.m3u8"}
                                 style={[styles.videoImage, videoAnimatedStyle]}
+
                             />
                             {/* Gradient Overlay */}
                             <LinearGradient
