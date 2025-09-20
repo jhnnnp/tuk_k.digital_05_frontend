@@ -50,9 +50,6 @@ export default ({ config }) => ({
                 },
             },
         },
-        associatedDomains: [
-            'applinks:tibo.com'
-        ]
     },
     android: {
         adaptiveIcon: {
@@ -92,6 +89,7 @@ export default ({ config }) => ({
         bundler: 'metro'
     },
     plugins: [
+        "expo-video",
         [
             'expo-camera',
             {
