@@ -9,10 +9,10 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		3E69ED4CE8FDFBF54926F0C8 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A386F909AF1C2E5EFB2E785 /* ExpoModulesProvider.swift */; };
-		60871AEFEC7E888052F6DAE5 /* libPods-TIBO.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5D85307049C72A7CB583F519 /* libPods-TIBO.a */; };
-		B918198B0835C3890268D262 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 71CA77635DC035A20653182E /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		BCD1B6B43E96BFA158E7D797 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BE64E948B7C83EB39BA95F21 /* PrivacyInfo.xcprivacy */; };
+		C28D252CAEEE094FA331EEFC /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B55BD0B3E25662759EC40B /* ExpoModulesProvider.swift */; };
+		E2AB13E86775D706F37D6786 /* libPods-TIBO.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 52FB6EE3046BFE5666005922 /* libPods-TIBO.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,16 +20,16 @@
 		13B07F961A680F5B00A75B9A /* TIBO.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TIBO.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = TIBO/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = TIBO/Info.plist; sourceTree = "<group>"; };
-		1A386F909AF1C2E5EFB2E785 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TIBO/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		3BD3A1AFE6B4A03CDFF5E1B7 /* Pods-TIBO.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TIBO.debug.xcconfig"; path = "Target Support Files/Pods-TIBO/Pods-TIBO.debug.xcconfig"; sourceTree = "<group>"; };
-		5D85307049C72A7CB583F519 /* libPods-TIBO.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TIBO.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		5FD234CBD987D146EA7D8135 /* Pods-TIBO.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TIBO.release.xcconfig"; path = "Target Support Files/Pods-TIBO/Pods-TIBO.release.xcconfig"; sourceTree = "<group>"; };
-		71CA77635DC035A20653182E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = TIBO/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		19B55BD0B3E25662759EC40B /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-TIBO/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		52FB6EE3046BFE5666005922 /* libPods-TIBO.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TIBO.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		720677729F05A8F31CB69DCA /* Pods-TIBO.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TIBO.release.xcconfig"; path = "Target Support Files/Pods-TIBO/Pods-TIBO.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = TIBO/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
+		BE64E948B7C83EB39BA95F21 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = TIBO/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = TIBO/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* TIBO-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "TIBO-Bridging-Header.h"; path = "TIBO/TIBO-Bridging-Header.h"; sourceTree = "<group>"; };
+		FE2FEC8E6DF618EC5F8E9CA4 /* Pods-TIBO.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TIBO.debug.xcconfig"; path = "Target Support Files/Pods-TIBO/Pods-TIBO.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				60871AEFEC7E888052F6DAE5 /* libPods-TIBO.a in Frameworks */,
+				E2AB13E86775D706F37D6786 /* libPods-TIBO.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				71CA77635DC035A20653182E /* PrivacyInfo.xcprivacy */,
+				BE64E948B7C83EB39BA95F21 /* PrivacyInfo.xcprivacy */,
 			);
 			name = TIBO;
 			sourceTree = "<group>";
@@ -62,18 +62,17 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				5D85307049C72A7CB583F519 /* libPods-TIBO.a */,
+				52FB6EE3046BFE5666005922 /* libPods-TIBO.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		73B603EF1C852BF91FD6164E /* Pods */ = {
+		7EC3FA8DEBEB202EEFB0E4F6 /* TIBO */ = {
 			isa = PBXGroup;
 			children = (
-				3BD3A1AFE6B4A03CDFF5E1B7 /* Pods-TIBO.debug.xcconfig */,
-				5FD234CBD987D146EA7D8135 /* Pods-TIBO.release.xcconfig */,
+				19B55BD0B3E25662759EC40B /* ExpoModulesProvider.swift */,
 			);
-			path = Pods;
+			name = TIBO;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -90,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				73B603EF1C852BF91FD6164E /* Pods */,
-				EBB32034FE36E96021541960 /* ExpoModulesProviders */,
+				A0A6C05178FCD6A51AE2DEAD /* Pods */,
+				AF7FD7193D5C015B3E25638F /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -106,6 +105,24 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A0A6C05178FCD6A51AE2DEAD /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				FE2FEC8E6DF618EC5F8E9CA4 /* Pods-TIBO.debug.xcconfig */,
+				720677729F05A8F31CB69DCA /* Pods-TIBO.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		AF7FD7193D5C015B3E25638F /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				7EC3FA8DEBEB202EEFB0E4F6 /* TIBO */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -113,22 +130,6 @@
 			);
 			name = Supporting;
 			path = TIBO/Supporting;
-			sourceTree = "<group>";
-		};
-		BD159DEEC83475E87D2E9CFF /* TIBO */ = {
-			isa = PBXGroup;
-			children = (
-				1A386F909AF1C2E5EFB2E785 /* ExpoModulesProvider.swift */,
-			);
-			name = TIBO;
-			sourceTree = "<group>";
-		};
-		EBB32034FE36E96021541960 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				BD159DEEC83475E87D2E9CFF /* TIBO */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -139,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "TIBO" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				366CD4875333ED7E4F7E8EFD /* [Expo] Configure project */,
+				2F9B259F6905FB4F866EF1D8 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				B520B11760B29C61F969CA52 /* [CP] Embed Pods Frameworks */,
+				017B3317F02A2E4C6076C1BD /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -165,8 +166,8 @@
 				LastUpgradeCheck = 1130;
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
-						DevelopmentTeam = WNN9UT3JN5;
 						LastSwiftMigration = 1250;
+						DevelopmentTeam = "WNN9UT3JN5";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -197,7 +198,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				B918198B0835C3890268D262 /* PrivacyInfo.xcprivacy in Resources */,
+				BCD1B6B43E96BFA158E7D797 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +219,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "if [[ -f \"$PODS_ROOT/../.xcode.env\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env\"\nfi\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n# The project root by default is one level up from the ios directory\nexport PROJECT_ROOT=\"$PROJECT_DIR\"/..\n\nif [[ \"$CONFIGURATION\" = *Debug* ]]; then\n  export SKIP_BUNDLING=1\nfi\nif [[ -z \"$ENTRY_FILE\" ]]; then\n  # Set the entry JS file using the bundler's entry resolution.\n  export ENTRY_FILE=\"$(\"$NODE_BINARY\" -e \"require('expo/scripts/resolveAppEntry')\" \"$PROJECT_ROOT\" ios absolute | tail -n 1)\"\nfi\n\nif [[ -z \"$CLI_PATH\" ]]; then\n  # Use Expo CLI\n  export CLI_PATH=\"$(\"$NODE_BINARY\" --print \"require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })\")\"\nfi\nif [[ -z \"$BUNDLE_COMMAND\" ]]; then\n  # Default Expo CLI command for bundling\n  export BUNDLE_COMMAND=\"export:embed\"\nfi\n\n# Source .xcode.env.updates if it exists to allow\n# SKIP_BUNDLING to be unset if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.updates\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.updates\"\nfi\n# Source local changes to allow overrides\n# if needed\nif [[ -f \"$PODS_ROOT/../.xcode.env.local\" ]]; then\n  source \"$PODS_ROOT/../.xcode.env.local\"\nfi\n\n`\"$NODE_BINARY\" --print \"require('path').dirname(require.resolve('react-native/package.json')) + '/scripts/react-native-xcode.sh'\"`\n\n";
+		};
+		017B3317F02A2E4C6076C1BD /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-TIBO/Pods-TIBO-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/JitsiWebRTC/WebRTC.framework/WebRTC",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/WebRTC.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TIBO/Pods-TIBO-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 		08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -241,7 +262,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		366CD4875333ED7E4F7E8EFD /* [Expo] Configure project */ = {
+		2F9B259F6905FB4F866EF1D8 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -356,26 +377,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TIBO/Pods-TIBO-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		B520B11760B29C61F969CA52 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-TIBO/Pods-TIBO-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/JitsiWebRTC/WebRTC.framework/WebRTC",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/WebRTC.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TIBO/Pods-TIBO-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -384,7 +385,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				3E69ED4CE8FDFBF54926F0C8 /* ExpoModulesProvider.swift in Sources */,
+				C28D252CAEEE094FA331EEFC /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,15 +394,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3BD3A1AFE6B4A03CDFF5E1B7 /* Pods-TIBO.debug.xcconfig */;
+			baseConfigurationReference = FE2FEC8E6DF618EC5F8E9CA4 /* Pods-TIBO.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TIBO/TIBO.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WNN9UT3JN5;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
@@ -427,20 +425,20 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "WNN9UT3JN5";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Debug;
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5FD234CBD987D146EA7D8135 /* Pods-TIBO.release.xcconfig */;
+			baseConfigurationReference = 720677729F05A8F31CB69DCA /* Pods-TIBO.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = TIBO/TIBO.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = WNN9UT3JN5;
 				INFOPLIST_FILE = TIBO/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -460,6 +458,9 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
+				DEVELOPMENT_TEAM = "WNN9UT3JN5";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 			};
 			name = Release;
 		};
